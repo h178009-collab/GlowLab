@@ -894,10 +894,12 @@ function updateDots(){
   for(let i=0;i<6;i++){const d=document.getElementById('pd-'+i);if(d){d.classList.toggle('filled',i<pinVal.length);d.classList.remove('err');}}
 }
 // ── ADMIN ROLES ───────────────────────────────────────────
-const OWNER_KEY='omar|E|503|9939'; // Omar's fixed key — always has full access
+// Omar's key — matches custKey('Omar','E','503','9939') or ('Omar','E','503','8880')
+const OWNER_KEYS=['omar|E|503|9939','omar|E|503|8880'];
+const OWNER_KEY=OWNER_KEYS[0]; // primary
 let promotedAdmins=new Set(JSON.parse(localStorage.getItem('gl_admins')||'[]'));
 
-function isOwner(){return currentUser&&currentUser.key===OWNER_KEY;}
+function isOwner(){return currentUser&&OWNER_KEYS.includes(currentUser.key);}
 function isPromotedAdmin(key){return promotedAdmins.has(key);}
 function canAccessAdmin(){return isOwner()||(currentUser&&isPromotedAdmin(currentUser.key));}
 
@@ -1693,19 +1695,20 @@ function renderCustomerList(){
       const last=orderCount?c.orders[orderCount-1].time:'—';
       const isAdmin=isPromotedAdmin(c.key);
       const ownerLoggedIn=isOwner();
+      const isThisOwner=OWNER_KEYS.includes(c.key);
       return `<div class="cust-row">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;">
           <div style="display:flex;align-items:center;gap:7px;">
             <div class="cust-name">${c.name}</div>
-            ${isAdmin?`<span style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--blue3);background:rgba(64,128,240,.12);border:1px solid rgba(64,128,240,.25);padding:2px 7px;border-radius:100px;letter-spacing:1px;">ADMIN</span>`:''}
+            ${isThisOwner?`<span style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--gold);background:rgba(196,154,58,.12);border:1px solid rgba(196,154,58,.3);padding:2px 7px;border-radius:100px;letter-spacing:1px;">OWNER</span>`:isAdmin?`<span style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--blue3);background:rgba(64,128,240,.12);border:1px solid rgba(64,128,240,.25);padding:2px 7px;border-radius:100px;letter-spacing:1px;">ADMIN</span>`:''}
           </div>
           <div style="display:flex;gap:5px;flex-shrink:0;">
-            ${ownerLoggedIn&&c.key!==OWNER_KEY?(isAdmin
+            ${ownerLoggedIn&&!isThisOwner?(isAdmin
               ?`<button onclick="demoteAdmin('${c.key}')" style="background:rgba(64,128,240,.08);border:1px solid rgba(64,128,240,.25);color:var(--blue3);font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 9px;border-radius:100px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='var(--blue2)';this.style.color='#fff'" onmouseout="this.style.background='rgba(64,128,240,.08)';this.style.color='var(--blue3)'">− Admin</button>`
               :`<button onclick="promoteToAdmin('${c.key}')" style="background:rgba(64,128,240,.08);border:1px solid rgba(64,128,240,.25);color:var(--blue3);font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 9px;border-radius:100px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='var(--blue2)';this.style.color='#fff'" onmouseout="this.style.background='rgba(64,128,240,.08)';this.style.color='var(--blue3)'">+ Admin</button>`)
             :''}
-            <button onclick="kickCustomer('${c.key}')" title="Kick — forces logout only" style="background:rgba(240,165,0,.08);border:1px solid rgba(240,165,0,.3);color:#f0a500;font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 9px;border-radius:100px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='#f0a500';this.style.color='#000'" onmouseout="this.style.background='rgba(240,165,0,.08)';this.style.color='#f0a500'">👢 Kick</button>
-            <button onclick="banCustomer('${c.key}')" title="Ban — permanent block" style="background:rgba(176,18,40,.08);border:1px solid rgba(176,18,40,.25);color:var(--red2);font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 9px;border-radius:100px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='var(--red2)';this.style.color='#fff'" onmouseout="this.style.background='rgba(176,18,40,.08)';this.style.color='var(--red2)'">🚫 Ban</button>
+            ${!isThisOwner?`<button onclick="kickCustomer('${c.key}')" title="Kick — forces logout only" style="background:rgba(240,165,0,.08);border:1px solid rgba(240,165,0,.3);color:#f0a500;font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 9px;border-radius:100px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='#f0a500';this.style.color='#000'" onmouseout="this.style.background='rgba(240,165,0,.08)';this.style.color='#f0a500'">👢 Kick</button>
+            <button onclick="banCustomer('${c.key}')" title="Ban — permanent block" style="background:rgba(176,18,40,.08);border:1px solid rgba(176,18,40,.25);color:var(--red2);font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 9px;border-radius:100px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='var(--red2)';this.style.color='#fff'" onmouseout="this.style.background='rgba(176,18,40,.08)';this.style.color='var(--red2)'">🚫 Ban</button>`:''}
           </div>
         </div>
         <div class="cust-meta">Block ${c.block}, Flat ${c.flat} · Joined ${c.joinDate}</div>
