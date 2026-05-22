@@ -873,6 +873,7 @@ function confirmAndPlace(){
   pendingOrderData=null;
   updateDelBadge();
   closeConfirm();
+  saveSession();
   showToast(`Order ${orderId} placed! 🚪`);
   cart=[];updateCart();
   ['f-name','f-phone','f-block','f-flatno','f-notes','f-t1','f-t2'].forEach(id=>document.getElementById(id).value='');
@@ -1316,6 +1317,37 @@ async function loadCustomersFromSheet(){
   }catch(e){}
 }
 
+async function saveSession(){
+  try{
+    localStorage.setItem('gl_user',JSON.stringify(currentUser));
+    localStorage.setItem('gl_customers',JSON.stringify(customers));
+  }catch(e){}
+}
+
+function loadSession(){
+  try{
+    const u=localStorage.getItem('gl_user');
+    const c=localStorage.getItem('gl_customers');
+    if(c) customers=JSON.parse(c);
+    if(u){
+      currentUser=JSON.parse(u);
+      // block if banned
+      if(currentUser&&isBanned(currentUser.block,currentUser.flat,currentUser.phone4)){
+        currentUser=null;
+        try{localStorage.removeItem('gl_user');}catch(e){}
+        return;
+      }
+      // make sure they exist in customers object
+      if(currentUser&&currentUser.key&&!customers[currentUser.key]){
+        customers[currentUser.key]={...currentUser,orders:[]};
+      }
+      updateLoginBtn();
+      // silently refresh their orders from sheet
+      loadMyOrders().then(()=>saveSession());
+    }
+  }catch(e){}
+}
+
 async function loadMyOrders(){
   if(!currentUser) return;
   try{
@@ -1357,12 +1389,14 @@ function doSignIn(){
   const err=document.getElementById('li-err');
   err.style.display='none';
   if(!block||!flat||!phone4){err.textContent='Please fill in all fields.';err.style.display='block';return;}
+  if(isBanned(block,flat,phone4)){err.textContent='Your account has been suspended. Contact the admin.';err.style.display='block';return;}
   // look up in local customers first
   const found=Object.values(customers).find(c=>c.block===block&&c.flat===flat&&c.phone4===phone4);
   if(found){
     currentUser={...found};
     closeLogin();updateLoginBtn();
     loadMyOrders().then(()=>{
+      saveSession();
       document.getElementById('f-name').value=found.name;
       document.getElementById('f-block').value=block;
       document.getElementById('f-flatno').value=flat;
@@ -1380,6 +1414,7 @@ function doSignIn(){
     currentUser={...customers[key]};
     closeLogin();updateLoginBtn();
     loadMyOrders().then(()=>{
+      saveSession();
       document.getElementById('f-name').value=match.name;
       document.getElementById('f-block').value=block;
       document.getElementById('f-flatno').value=flat;
@@ -1410,6 +1445,7 @@ function doLogin(){
   const err=document.getElementById('li-err');
   if(!name||!block||!flat||!phone4){err.textContent='Please fill in all fields.';err.style.display='block';return;}
   const key=custKey(name,block,flat,phone4);
+  if(isBanned(block,flat,phone4)){err.textContent='Your account has been suspended. Contact the admin.';err.style.display='block';return;}
   // register if new
   if(!customers[key]){
     customers[key]={name,block,flat,phone4,key,joinDate:new Date().toLocaleDateString('en-IN'),orders:[]};
@@ -1417,6 +1453,7 @@ function doLogin(){
   currentUser={...customers[key]};
   // register in sheet if new
   gsPost({type:'customer',name,block,flat,phone4,joinDate:customers[key].joinDate});
+  saveSession();
   closeLogin();
   updateLoginBtn();
   // load their orders from sheet
@@ -1430,6 +1467,7 @@ function doLogin(){
 
 function logoutUser(){
   currentUser=null;
+  try{localStorage.removeItem('gl_user');}catch(e){}
   updateLoginBtn();
   showToast('Logged out');
 }
@@ -1506,41 +1544,106 @@ function syncOrderStatus(orderId,status){
 }
 
 // CUSTOMERS ADMIN TAB
+let bannedUsers=new Set(JSON.parse(localStorage.getItem('gl_banned')||'[]'));
+// banned identifiers stored as "block|flat|phone4" so they can't bypass by re-registering
+let bannedIds=new Set(JSON.parse(localStorage.getItem('gl_banned_ids')||'[]'));
+
+function saveBans(){
+  try{
+    localStorage.setItem('gl_banned',JSON.stringify([...bannedUsers]));
+    localStorage.setItem('gl_banned_ids',JSON.stringify([...bannedIds]));
+  }catch(e){}
+}
+
+function isBanned(block,flat,phone4){
+  return bannedIds.has(block+'|'+flat+'|'+phone4);
+}
+
+function kickCustomer(key){
+  if(!confirm('Ban this customer? They will be permanently blocked from logging in.')) return;
+  bannedUsers.add(key);
+  const c=customers[key];
+  if(c) bannedIds.add(c.block+'|'+c.flat+'|'+c.phone4);
+  saveBans();
+  // if this customer is currently logged in on this device, log them out
+  if(currentUser&&currentUser.key===key){
+    currentUser=null;
+    try{localStorage.removeItem('gl_user');}catch(e){}
+    updateLoginBtn();
+  }
+  renderCustomerList();
+  showToast('Customer banned 🚫');
+}
+
+function unkickCustomer(key){
+  bannedUsers.delete(key);
+  const c=customers[key];
+  if(c) bannedIds.delete(c.block+'|'+c.flat+'|'+c.phone4);
+  saveBans();
+  renderCustomerList();
+  showToast('Customer unbanned ✓');
+}
+
 function renderCustomerList(){
   const search=(document.getElementById('cust-search')?.value||'').toLowerCase();
   const all=Object.values(customers);
-  const filtered=search?all.filter(c=>
+  const active=all.filter(c=>!bannedUsers.has(c.key));
+  const banned=all.filter(c=>bannedUsers.has(c.key));
+  const filtered=search?active.filter(c=>
     c.name.toLowerCase().includes(search)||
     (c.block+c.flat).toLowerCase().includes(search)
-  ):all;
+  ):active;
 
   // summary
   const cs=document.getElementById('cust-summary');
   if(cs)cs.innerHTML=[
-    {label:'Total',val:all.length,color:'var(--tx)'},
-    {label:'Orders',val:all.reduce((s,c)=>s+c.orders.length,0),color:'var(--blue3)'},
-    {label:'Revenue ₹',val:all.reduce((s,c)=>s+c.orders.reduce((a,o)=>a+o.total,0),0),color:'var(--red2)'},
-  ].map(s=>`<div style="background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:.5rem .9rem;flex:1;min-width:80px;text-align:center;"><div style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:${s.color};line-height:1;">${s.val}</div><div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--mt);letter-spacing:1.5px;margin-top:2px;">${s.label}</div></div>`).join('');
+    {label:'Total',val:active.length,color:'var(--tx)'},
+    {label:'Orders',val:active.reduce((s,c)=>s+c.orders.length,0),color:'var(--blue3)'},
+    {label:'Revenue ₹',val:active.reduce((s,c)=>s+c.orders.reduce((a,o)=>a+o.total,0),0),color:'var(--red2)'},
+    {label:'Banned',val:banned.length,color:'var(--mt)'},
+  ].map(s=>`<div style="background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:.5rem .9rem;flex:1;min-width:70px;text-align:center;"><div style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:${s.color};line-height:1;">${s.val}</div><div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--mt);letter-spacing:1.5px;margin-top:2px;">${s.label}</div></div>`).join('');
 
   const el=document.getElementById('cust-list');
   if(!el)return;
-  if(!filtered.length){el.innerHTML='<div style="color:var(--mt);font-size:13px;text-align:center;padding:2rem;letter-spacing:1px;">No customers yet</div>';return;}
-  el.innerHTML=filtered.map(c=>{
-    const orderCount=c.orders.length;
-    const spent=c.orders.reduce((s,o)=>s+o.total,0);
-    const last=orderCount?c.orders[orderCount-1].time:'—';
-    return `<div class="cust-row">
-      <div>
-        <div class="cust-name">${c.name}</div>
-        <div class="cust-meta">Block ${c.block}, Flat ${c.flat} · Joined ${c.joinDate}</div>
-        <div class="cust-meta" style="margin-top:2px;">Last order: ${last}</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0;">
-        <div style="font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--red2);font-weight:700;">₹${spent}</div>
-        <div style="font-size:10px;color:var(--mt);letter-spacing:1px;">${orderCount} order${orderCount!==1?'s':''}</div>
-      </div>
+
+  let html='';
+  if(!filtered.length){
+    html+='<div style="color:var(--mt);font-size:13px;text-align:center;padding:2rem;letter-spacing:1px;">No customers yet</div>';
+  } else {
+    html+=filtered.map(c=>{
+      const orderCount=c.orders.length;
+      const spent=c.orders.reduce((s,o)=>s+o.total,0);
+      const last=orderCount?c.orders[orderCount-1].time:'—';
+      return `<div class="cust-row">
+        <div style="flex:1;">
+          <div class="cust-name">${c.name}</div>
+          <div class="cust-meta">Block ${c.block}, Flat ${c.flat} · Joined ${c.joinDate}</div>
+          <div class="cust-meta" style="margin-top:2px;">Last order: ${last}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--red2);font-weight:700;">₹${spent}</div>
+          <div style="font-size:10px;color:var(--mt);letter-spacing:1px;">${orderCount} order${orderCount!==1?'s':''}</div>
+          <button onclick="kickCustomer('${c.key}')" style="background:rgba(176,18,40,.08);border:1px solid rgba(176,18,40,.25);color:var(--red2);font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:1.5px;padding:3px 10px;border-radius:100px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='var(--red2)';this.style.color='#fff'" onmouseout="this.style.background='rgba(176,18,40,.08)';this.style.color='var(--red2)'">🚫 Kick</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // banned section
+  if(banned.length){
+    html+=`<div style="margin-top:1.2rem;padding-top:1rem;border-top:1px solid var(--bdr);">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--mt);letter-spacing:2px;margin-bottom:.7rem;">BANNED</div>
+      ${banned.map(c=>`<div class="cust-row" style="opacity:.5;">
+        <div>
+          <div class="cust-name" style="text-decoration:line-through;">${c.name}</div>
+          <div class="cust-meta">Block ${c.block}, Flat ${c.flat}</div>
+        </div>
+        <button onclick="unkickCustomer('${c.key}')" style="background:rgba(64,128,240,.08);border:1px solid rgba(64,128,240,.25);color:var(--blue3);font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:1.5px;padding:3px 10px;border-radius:100px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='var(--blue2)';this.style.color='#fff'" onmouseout="this.style.background='rgba(64,128,240,.08)';this.style.color='var(--blue3)'">↩ Unban</button>
+      </div>`).join('')}
     </div>`;
-  }).join('');
+  }
+
+  el.innerHTML=html;
 }
 
 function exportCustomers(){
@@ -1586,7 +1689,7 @@ startFactRotation(4);
 renderProds();
 document.getElementById('ann-text').innerHTML='<span style="font-style:italic;color:var(--mt);letter-spacing:3px;font-size:11px;">— the lab is quiet. no transmissions at this time —</span>';
 document.getElementById('ann-bar').style.display='block';
-// load customer + order data from Google Sheets on startup
+loadSession();
 loadCustomersFromSheet();
 </script>
 </body>
