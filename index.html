@@ -280,7 +280,7 @@ footer{text-align:center;padding:2rem 2.5rem;border-top:1px solid var(--bdr);fon
 <div id="admin-section">
   <div class="awrap">
     <div class="ahdr">
-      <span class="atitle">Admin Panel</span>
+      <span class="atitle" id="admin-title">Admin Panel</span>
       <button class="nbtn" onclick="lockAdmin()" style="font-size:11px;">Lock</button>
     </div>
     <div style="display:flex;border-bottom:1px solid var(--bdr);flex-wrap:wrap;">
@@ -893,7 +893,37 @@ function pinDel(){if(pinVal.length>0){pinVal=pinVal.slice(0,-1);updateDots();}}
 function updateDots(){
   for(let i=0;i<6;i++){const d=document.getElementById('pd-'+i);if(d){d.classList.toggle('filled',i<pinVal.length);d.classList.remove('err');}}
 }
-function openAdmin(){if(adminOn){showAdmin();return;}pinVal='';updateDots();document.getElementById('pc-err').style.display='none';document.getElementById('pc-modal').classList.add('show');}
+// ── ADMIN ROLES ───────────────────────────────────────────
+const OWNER_KEY='omar|E|503|9939'; // Omar's fixed key — always has full access
+let promotedAdmins=new Set(JSON.parse(localStorage.getItem('gl_admins')||'[]'));
+
+function isOwner(){return currentUser&&currentUser.key===OWNER_KEY;}
+function isPromotedAdmin(key){return promotedAdmins.has(key);}
+function canAccessAdmin(){return isOwner()||(currentUser&&isPromotedAdmin(currentUser.key));}
+
+function promoteToAdmin(key){
+  if(!isOwner()){showToast('Only the owner can promote admins');return;}
+  promotedAdmins.add(key);
+  try{localStorage.setItem('gl_admins',JSON.stringify([...promotedAdmins]));}catch(e){}
+  renderCustomerList();
+  showToast('Admin access granted ✓');
+}
+function demoteAdmin(key){
+  if(!isOwner()){showToast('Only the owner can remove admins');return;}
+  promotedAdmins.delete(key);
+  try{localStorage.setItem('gl_admins',JSON.stringify([...promotedAdmins]));}catch(e){}
+  renderCustomerList();
+  showToast('Admin access removed');
+}
+
+function openAdmin(){
+  if(adminOn){showAdmin();return;}
+  // if logged-in user has admin access, skip PIN
+  if(canAccessAdmin()){adminOn=true;showAdmin();return;}
+  pinVal='';updateDots();
+  document.getElementById('pc-err').style.display='none';
+  document.getElementById('pc-modal').classList.add('show');
+}
 function closePc(){document.getElementById('pc-modal').classList.remove('show');pinVal='';updateDots();}
 function chkPc(){
   if(pinVal===getPC()){adminOn=true;closePc();showAdmin();}
@@ -904,7 +934,18 @@ function chkPc(){
   }
 }
 function togPc(){}
-function showAdmin(){document.getElementById('admin-section').classList.add('show');renderAdmin();document.getElementById('admin-section').scrollIntoView({behavior:'smooth'});}
+function showAdmin(){
+  document.getElementById('admin-section').classList.add('show');
+  // update admin title to show role
+  const title=document.getElementById('admin-title');
+  if(title){
+    if(isOwner()) title.textContent='Admin Panel · Owner';
+    else if(currentUser&&isPromotedAdmin(currentUser.key)) title.textContent='Admin Panel · '+currentUser.name.split(' ')[0];
+    else title.textContent='Admin Panel';
+  }
+  renderAdmin();
+  document.getElementById('admin-section').scrollIntoView({behavior:'smooth'});
+}
 function lockAdmin(){adminOn=false;document.getElementById('admin-section').classList.remove('show');}
 function togCpVis(iid,bid){const inp=document.getElementById(iid),btn=document.getElementById(bid);const s=inp.type==='password';inp.type=s?'text':'password';btn.textContent=s?'HIDE':'SHOW';}
 function changePasscode(){
@@ -1650,12 +1691,21 @@ function renderCustomerList(){
       const orderCount=c.orders.length;
       const spent=c.orders.reduce((s,o)=>s+o.total,0);
       const last=orderCount?c.orders[orderCount-1].time:'—';
+      const isAdmin=isPromotedAdmin(c.key);
+      const ownerLoggedIn=isOwner();
       return `<div class="cust-row">
-        <div style="display:flex;align-items:center;justify-content:space-between;">
-          <div class="cust-name">${c.name}</div>
-          <div style="display:flex;gap:6px;flex-shrink:0;">
-            <button onclick="kickCustomer('${c.key}')" title="Kick — forces logout only" style="background:rgba(240,165,0,.08);border:1px solid rgba(240,165,0,.3);color:#f0a500;font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 10px;border-radius:100px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='#f0a500';this.style.color='#000'" onmouseout="this.style.background='rgba(240,165,0,.08)';this.style.color='#f0a500'">👢 Kick</button>
-            <button onclick="banCustomer('${c.key}')" title="Ban — permanent block" style="background:rgba(176,18,40,.08);border:1px solid rgba(176,18,40,.25);color:var(--red2);font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 10px;border-radius:100px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='var(--red2)';this.style.color='#fff'" onmouseout="this.style.background='rgba(176,18,40,.08)';this.style.color='var(--red2)'">🚫 Ban</button>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:7px;">
+            <div class="cust-name">${c.name}</div>
+            ${isAdmin?`<span style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--blue3);background:rgba(64,128,240,.12);border:1px solid rgba(64,128,240,.25);padding:2px 7px;border-radius:100px;letter-spacing:1px;">ADMIN</span>`:''}
+          </div>
+          <div style="display:flex;gap:5px;flex-shrink:0;">
+            ${ownerLoggedIn&&c.key!==OWNER_KEY?(isAdmin
+              ?`<button onclick="demoteAdmin('${c.key}')" style="background:rgba(64,128,240,.08);border:1px solid rgba(64,128,240,.25);color:var(--blue3);font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 9px;border-radius:100px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='var(--blue2)';this.style.color='#fff'" onmouseout="this.style.background='rgba(64,128,240,.08)';this.style.color='var(--blue3)'">− Admin</button>`
+              :`<button onclick="promoteToAdmin('${c.key}')" style="background:rgba(64,128,240,.08);border:1px solid rgba(64,128,240,.25);color:var(--blue3);font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 9px;border-radius:100px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='var(--blue2)';this.style.color='#fff'" onmouseout="this.style.background='rgba(64,128,240,.08)';this.style.color='var(--blue3)'">+ Admin</button>`)
+            :''}
+            <button onclick="kickCustomer('${c.key}')" title="Kick — forces logout only" style="background:rgba(240,165,0,.08);border:1px solid rgba(240,165,0,.3);color:#f0a500;font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 9px;border-radius:100px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='#f0a500';this.style.color='#000'" onmouseout="this.style.background='rgba(240,165,0,.08)';this.style.color='#f0a500'">👢 Kick</button>
+            <button onclick="banCustomer('${c.key}')" title="Ban — permanent block" style="background:rgba(176,18,40,.08);border:1px solid rgba(176,18,40,.25);color:var(--red2);font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 9px;border-radius:100px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='var(--red2)';this.style.color='#fff'" onmouseout="this.style.background='rgba(176,18,40,.08)';this.style.color='var(--red2)'">🚫 Ban</button>
           </div>
         </div>
         <div class="cust-meta">Block ${c.block}, Flat ${c.flat} · Joined ${c.joinDate}</div>
