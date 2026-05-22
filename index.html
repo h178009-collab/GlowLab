@@ -822,6 +822,8 @@ function confirmAndPlace(){
   const orderId='GL-'+Math.floor(1000+Math.random()*9000);
   const fullOrder={...pendingOrderData,orderId,status:'pending'};
   pendingOrders.push(fullOrder);
+  // send to Google Sheets
+  gsPost({type:'order',name:fullOrder.name,block:fullOrder.flat.split(', Flat ')[0].replace('Block ',''),flat:fullOrder.flat.split(', Flat ')[1]||fullOrder.flat,phone4:fullOrder.phone.slice(-4),orderId:fullOrder.orderId,items:fullOrder.items,total:fullOrder.total,feedback:fullOrder.notes||''});
   // attach to customer record
   if(currentUser){
     const key=currentUser.key;
@@ -893,7 +895,7 @@ function switchTab(t){
   });
   if(t==='del')renderDeliveries();
   if(t==='facts')renderFactsList();
-  if(t==='cust')renderCustomerList();
+  if(t==='cust'){loadCustomersFromSheet().then(()=>renderCustomerList());}
 }
 
 function renderAdmin(){
@@ -1032,6 +1034,7 @@ function markReady(i,cb){
   o.status='ready';
   readyOrders.push(o);
   syncOrderStatus(o.orderId,'ready');
+  gsPost({type:'status',orderId:o.orderId,status:'Ready'});
   showToast('Order marked as ready 🟡');
   renderDeliveries();
 }
@@ -1042,6 +1045,7 @@ function markDelivered(i,cb){
   o.status='delivered';
   pastOrders.unshift(o);
   syncOrderStatus(o.orderId,'delivered');
+  gsPost({type:'status',orderId:o.orderId,status:'Delivered'});
   showToast('Delivered! ✓');
   renderDeliveries();
 }
@@ -1252,7 +1256,51 @@ function fireConfetti(){
   draw();
 }
 
-// ── CUSTOMER SYSTEM ──────────────────────────────────────
+// ── GOOGLE SHEETS SYNC ───────────────────────────────────
+const GS_URL='https://script.google.com/macros/s/AKfycbz9s491QZ4hoPDfzyo1qug6C9ER3rIidLNJcl25UXuQhTolrF7QDG027eFOJDySWhGe/exec';
+
+function gsPost(data){
+  fetch(GS_URL,{method:'POST',mode:'no-cors',body:JSON.stringify(data),headers:{'Content-Type':'application/json'}}).catch(()=>{});
+}
+
+async function gsFetch(params){
+  const qs=Object.entries(params).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
+  return fetch(GS_URL+'?'+qs).then(r=>r.json()).catch(()=>[]);
+}
+
+async function loadCustomersFromSheet(){
+  try{
+    const rows=await gsFetch({type:'customers'});
+    if(Array.isArray(rows)) rows.forEach(r=>{
+      const key=custKey(r.name,r.block,r.flat,r.phone4);
+      if(!customers[key]) customers[key]={name:r.name,block:r.block,flat:r.flat,phone4:r.phone4,key,joinDate:r.joinDate,orders:[]};
+    });
+    const orders=await gsFetch({type:'orders'});
+    if(Array.isArray(orders)) orders.forEach(o=>{
+      const key=custKey(o.name,o.block,o.flat,o.phone4);
+      if(!customers[key]) customers[key]={name:o.name,block:o.block,flat:o.flat,phone4:o.phone4,key,joinDate:'',orders:[]};
+      const exists=customers[key].orders.find(x=>x.orderId===o.orderId);
+      if(!exists) customers[key].orders.push({orderId:o.orderId,items:o.items,total:Number(o.total),status:o.status,time:o.timestamp,feedback:o.feedback});
+    });
+  }catch(e){}
+}
+
+async function loadMyOrders(){
+  if(!currentUser) return;
+  try{
+    const orders=await gsFetch({type:'myorders',phone4:currentUser.phone4,block:currentUser.block,flat:currentUser.flat});
+    if(!Array.isArray(orders)) return;
+    const key=currentUser.key;
+    if(!customers[key]) customers[key]={...currentUser,orders:[]};
+    orders.forEach(o=>{
+      const exists=customers[key].orders.find(x=>x.orderId===o.orderId);
+      if(!exists) customers[key].orders.push(o);
+      else exists.status=o.status; // update status
+    });
+  }catch(e){}
+}
+
+// ── CUSTOMER SYSTEM ───────────────────────────────────────
 let customers={}; // keyed by "name|block|flat|phone4"
 let currentUser=null; // {name,block,flat,phone4,key}
 
@@ -1283,13 +1331,17 @@ function doLogin(){
     customers[key]={name,block,flat,phone4,key,joinDate:new Date().toLocaleDateString('en-IN'),orders:[]};
   }
   currentUser={...customers[key]};
+  // register in sheet if new
+  gsPost({type:'customer',name,block,flat,phone4,joinDate:customers[key].joinDate});
   closeLogin();
   updateLoginBtn();
-  // auto-fill order form
-  document.getElementById('f-name').value=name;
-  document.getElementById('f-block').value=block;
-  document.getElementById('f-flatno').value=flat;
-  showToast('Welcome back, '+name+' 👋');
+  // load their orders from sheet
+  loadMyOrders().then(()=>{
+    document.getElementById('f-name').value=name;
+    document.getElementById('f-block').value=block;
+    document.getElementById('f-flatno').value=flat;
+    showToast('Welcome back, '+name+' 👋');
+  });
 }
 
 function logoutUser(){
@@ -1329,10 +1381,13 @@ function attachOrderToCustomer(orderData){
 function openHist(){
   if(!currentUser){openLogin();return;}
   const key=currentUser.key;
-  const cust=customers[key];
-  document.getElementById('hist-user').textContent=
-    (cust?.name||currentUser.name)+' · Block '+currentUser.block+', Flat '+currentUser.flat;
-  renderHistList(cust);
+  // refresh from sheet first
+  loadMyOrders().then(()=>{
+    const cust=customers[key];
+    document.getElementById('hist-user').textContent=
+      (cust?.name||currentUser.name)+' · Block '+currentUser.block+', Flat '+currentUser.flat;
+    renderHistList(cust);
+  });
   document.getElementById('hist-modal').classList.add('show');
 }
 function closeHist(){document.getElementById('hist-modal').classList.remove('show');}
@@ -1447,6 +1502,8 @@ startFactRotation(4);
 renderProds();
 document.getElementById('ann-text').innerHTML='<span style="font-style:italic;color:var(--mt);letter-spacing:3px;font-size:11px;">— the lab is quiet. no transmissions at this time —</span>';
 document.getElementById('ann-bar').style.display='block';
+// load customer + order data from Google Sheets on startup
+loadCustomersFromSheet();
 </script>
 </body>
 </html>
