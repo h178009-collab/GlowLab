@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>GlowLab</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#060411;--bg2:#0c0819;--bg3:#120c23;--red:#b01228;--red2:#d9132a;--blue:#1035a8;--blue2:#1648cc;--blue3:#4080f0;--bdr:rgba(130,35,65,.16);--bdr2:rgba(35,85,200,.2);--tx:#eae4f5;--mt:#5e4f78;--card:#0a0616;--card2:#100c1e;--gold:#c49a3a}
+body.light{--bg:#f5f3fa;--bg2:#ffffff;--bg3:#edeaf5;--bdr:rgba(110,25,55,.09);--bdr2:rgba(25,75,190,.12);--tx:#0e0620;--mt:#8878a8;--card:#ffffff;--card2:#f2effa}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Rajdhani',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;overflow-x:hidden;transition:background .4s,color .4s;-webkit-font-smoothing:antialiased}
+::selection{background:rgba(64,128,240,.25);color:var(--tx)}
+::-webkit-scrollbar{width:2px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:linear-gradient(var(--red2),var(--blue2));border-radius:2px}
+nav{display:flex;align-items:center;justify-content:space-between;padding:.9rem 2.5rem;border-bottom:1px solid var(--bdr);background:rgba(6,4,17,.88);position:sticky;top:0;z-index:100;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px)}
+body.light nav{background:rgba(245,243,250,.9)}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:8px;background:linear-gradient(110deg,var(--red2) 0%,#e8e0ff 40%,var(--blue3) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;user-select:none}
+.nav-right{display:flex;gap:8px;align-items:center}
+.nbtn{background:transparent;border:1px solid var(--bdr);color:var(--mt);font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;padding:6px 16px;cursor:pointer;border-radius:100px;transition:all .2s}
+.nbtn:hover{border-color:rgba(208,19,42,.4);color:var(--red2);background:rgba(208,19,42,.04)}
+.cbtn{background:linear-gradient(135deg,var(--red),var(--red2));border:none;color:#fff;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;letter-spacing:2.5px;padding:7px 20px;cursor:pointer;border-radius:100px;box-shadow:0 4px 16px rgba(176,18,40,.3);transition:all .22s}
+.cbtn:hover{box-shadow:0 6px 22px rgba(176,18,40,.5);transform:translateY(-1px)}
+.cbtn #cart-count{display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.22);border-radius:100px;min-width:18px;height:18px;font-size:10px;padding:0 5px;margin-left:4px}
+.modetgl{background:transparent;border:1px solid var(--bdr);color:var(--mt);font-size:13px;padding:6px 11px;cursor:pointer;border-radius:100px;transition:all .2s;line-height:1}
+.modetgl:hover{border-color:rgba(64,128,240,.35);color:var(--blue3)}
+#ann-bar{display:none;background:linear-gradient(90deg,rgba(176,18,40,.08),rgba(22,72,204,.08));border-bottom:1px solid rgba(176,18,40,.14);padding:.5rem 2.5rem;text-align:center}
+#ann-text{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:2.5px;color:var(--tx);opacity:.8}
+.hero{padding:6rem 2.5rem 4.5rem;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-140px;left:50%;transform:translateX(-50%);width:800px;height:480px;background:radial-gradient(ellipse,rgba(176,18,40,.09) 0%,rgba(16,53,168,.06) 50%,transparent 70%);pointer-events:none}
+.hero::after{content:'';position:absolute;bottom:0;left:15%;right:15%;height:1px;background:linear-gradient(90deg,transparent,rgba(130,35,65,.25),transparent)}
+.htag{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--blue3);letter-spacing:6px;margin-bottom:1.8rem;opacity:.5;text-transform:uppercase}
+.hero h1{font-family:'Bebas Neue',sans-serif;font-size:8rem;letter-spacing:20px;line-height:.95;margin-bottom:.6rem;background:linear-gradient(140deg,var(--red2) 0%,#f0eaff 42%,var(--blue3) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;transition:filter .8s ease}
+.hero h1.charging{}
+.hero p{font-size:12px;color:var(--mt);letter-spacing:4px;text-transform:uppercase}
+.gwrap{padding:2.5rem 2.5rem 3.5rem}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;padding-bottom:.9rem;border-bottom:1px solid var(--bdr)}
+.section-title{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:6px;color:var(--tx);opacity:.9}
+.glbl{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--mt);letter-spacing:3px;text-transform:uppercase}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px}
+.pcard{background:var(--card);cursor:pointer;transition:transform .28s cubic-bezier(.2,.8,.2,1),box-shadow .28s,border-color .28s;position:relative;border-radius:16px;border:1px solid var(--bdr);overflow:hidden}
+.pcard:hover{transform:translateY(-6px);box-shadow:0 24px 60px rgba(0,0,0,.6);border-color:rgba(64,128,240,.2)}
+.pimg{width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:3.5rem;position:relative;overflow:hidden;background:linear-gradient(145deg,var(--card2),var(--card))}
+.pimg img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;transition:transform .45s}
+.pcard:hover .pimg img{transform:scale(1.06)}
+.pimg .emoji-fb{position:relative;z-index:1;filter:drop-shadow(0 4px 12px rgba(0,0,0,.4))}
+.bdg{position:absolute;top:10px;left:10px;font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1.5px;padding:3px 9px;border-radius:100px;text-transform:uppercase;z-index:2;font-weight:700}
+.bnew{background:rgba(22,72,204,.88);color:#fff}
+.bsale{background:rgba(176,18,40,.88);color:#fff}
+.pinf{padding:.9rem 1rem 1.1rem}
+.pname{font-size:.84rem;font-weight:700;color:var(--tx);letter-spacing:2.5px;margin-bottom:3px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.psub{font-size:11px;color:var(--mt);margin-bottom:8px;letter-spacing:.3px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pdots{display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap;align-items:center}
+.dot{width:10px;height:10px;border-radius:50%;border:1px solid rgba(128,128,128,.18);display:inline-block}
+.pbot{display:flex;align-items:center;justify-content:space-between}
+.pprice{font-family:'Share Tech Mono',monospace;font-size:14px;color:var(--tx);font-weight:700;letter-spacing:1px}
+.pprice .old{font-size:10px;color:var(--mt);text-decoration:line-through;margin-right:4px}
+.bbtn{background:linear-gradient(135deg,var(--red),var(--blue2));border:none;color:#fff;font-family:'Rajdhani',sans-serif;font-size:9px;font-weight:700;letter-spacing:2.5px;padding:6px 13px;cursor:pointer;transition:all .2s;border-radius:100px;text-transform:uppercase}
+.bbtn:hover{opacity:.88;transform:scale(1.04)}
+.ovl{display:none;position:fixed;inset:0;background:rgba(3,1,8,.92);z-index:500;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(12px)}
+.ovl.show{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--bdr2);border-radius:20px;width:100%;max-width:490px;max-height:90vh;overflow-y:auto;box-shadow:0 40px 100px rgba(0,0,0,.8)}
+.mhdr{padding:1.2rem 1.5rem;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:2;border-radius:20px 20px 0 0}
+.mtitle{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:3px}
+.xbtn{background:rgba(255,255,255,.04);border:1px solid var(--bdr);color:var(--mt);font-size:.9rem;cursor:pointer;padding:5px 10px;line-height:1;border-radius:8px;transition:all .2s}
+.xbtn:hover{color:var(--red2);border-color:rgba(208,19,42,.35)}
+.mbody{padding:1.4rem}
+.slbl{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--blue3);letter-spacing:3.5px;text-transform:uppercase;margin-bottom:.55rem;margin-top:1.2rem;opacity:.7}
+.copts{display:flex;gap:10px;flex-wrap:wrap}
+.copt{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;transition:transform .15s}
+.copt:hover{transform:scale(1.08)}
+.csw{width:38px;height:38px;border-radius:50%;border:2.5px solid transparent;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.csw.sel{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.12),0 0 18px rgba(255,255,255,.18)}
+.clbl{font-size:8px;color:var(--mt);letter-spacing:1px;text-transform:uppercase}
+.gsec{background:rgba(22,72,204,.04);border:1px solid rgba(22,72,204,.12);border-radius:12px;padding:.9rem;margin-top:1rem}
+.gtog{display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+.glbl2{font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;color:var(--blue3);letter-spacing:2.5px;text-transform:uppercase}
+.tgsw{width:42px;height:23px;background:rgba(255,255,255,.07);border-radius:12px;position:relative;cursor:pointer;border:1px solid var(--bdr2);transition:background .25s;flex-shrink:0}
+.tgsw.on{background:var(--blue2)}
+.tgkn{position:absolute;width:17px;height:17px;background:#fff;border-radius:50%;top:2px;left:2px;transition:left .25s;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.tgsw.on .tgkn{left:21px}
+.ssec{display:flex;align-items:center;justify-content:space-between;padding:.8rem .9rem;background:rgba(176,18,40,.03);border:1px solid rgba(176,18,40,.08);border-radius:12px;margin-top:.5rem}
+.szbtn{background:transparent;border:1px solid var(--bdr);color:var(--mt);font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;padding:6px 18px;cursor:pointer;border-radius:100px;transition:all .2s}
+.szbtn.sel{border-color:rgba(208,19,42,.45);color:var(--red2);background:rgba(208,19,42,.06)}
+.qwrap{display:flex;align-items:center;gap:10px;margin-top:.5rem}
+.qbtn{background:var(--bg3);border:1px solid var(--bdr2);color:var(--tx);width:32px;height:32px;cursor:pointer;font-size:16px;border-radius:50%;transition:all .2s;display:flex;align-items:center;justify-content:center}
+.qbtn:hover{background:var(--blue2);border-color:var(--blue2);color:#fff}
+.qdsp{font-family:'Share Tech Mono',monospace;font-size:15px;min-width:24px;text-align:center}
+.acbtn{width:100%;margin-top:1.2rem;background:linear-gradient(135deg,var(--red),var(--blue2));border:none;color:#fff;font-family:'Bebas Neue',sans-serif;letter-spacing:5px;padding:13px;cursor:pointer;border-radius:12px;transition:all .25s;box-shadow:0 6px 22px rgba(176,18,40,.28);font-size:.9rem}
+.acbtn:hover{opacity:.88;transform:translateY(-1px)}
+.osec{margin:0 2.5rem 4rem;border:1px solid var(--bdr);border-radius:20px;padding:2.2rem;background:var(--bg2);box-shadow:0 8px 36px rgba(0,0,0,.18)}
+.otitle{font-family:'Bebas Neue',sans-serif;font-size:1.9rem;letter-spacing:6px;margin-bottom:.3rem}
+.osub{font-size:12px;color:var(--mt);margin-bottom:1.4rem;letter-spacing:.5px}
+.dbdg{display:inline-flex;align-items:center;gap:7px;background:rgba(22,72,204,.06);border:1px solid rgba(22,72,204,.18);border-radius:100px;padding:5px 14px;font-size:10px;color:var(--blue3);letter-spacing:2px;margin-bottom:1.4rem;font-weight:700}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.frow.full{grid-template-columns:1fr}
+.fgrp{display:flex;flex-direction:column;gap:5px}
+.flbl{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--blue3);letter-spacing:3px;text-transform:uppercase;opacity:.7}
+.finp,.ftxa{background:var(--bg3);border:1px solid var(--bdr);color:var(--tx);font-family:'Rajdhani',sans-serif;font-size:14px;padding:10px 13px;border-radius:10px;outline:none;transition:all .22s;width:100%}
+.finp:focus,.ftxa:focus{border-color:rgba(64,128,240,.38);background:rgba(22,72,204,.025);box-shadow:0 0 0 3px rgba(22,72,204,.06)}
+.ftxa{resize:vertical;min-height:72px}
+.subbtn{width:100%;margin-top:1.1rem;background:linear-gradient(135deg,var(--blue),var(--red2));border:none;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:.95rem;letter-spacing:6px;padding:14px;cursor:pointer;border-radius:12px;transition:all .25s;box-shadow:0 6px 22px rgba(16,53,168,.26)}
+.subbtn:hover{opacity:.88;transform:translateY(-1px)}
+.cpnl{display:none;position:fixed;right:0;top:0;bottom:0;width:340px;background:var(--bg2);border-left:1px solid var(--bdr2);z-index:600;flex-direction:column;overflow:hidden;box-shadow:-12px 0 50px rgba(0,0,0,.55)}
+.cpnl.show{display:flex}
+.cpnl-hdr{padding:1.2rem 1.4rem;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cptitle{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:4px}
+.cpnl-items{flex:1;overflow-y:auto;padding:1rem 1.4rem}
+.cpnl-ftr{padding:1rem 1.4rem;border-top:1px solid var(--bdr);flex-shrink:0}
+.citem{background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:.85rem;margin-bottom:8px}
+.ciname{font-weight:700;letter-spacing:1.5px;margin-bottom:2px;font-size:12px;text-transform:uppercase}
+.cidet{color:var(--mt);font-size:11px;line-height:1.5;margin-bottom:4px}
+.ciprice{font-family:'Share Tech Mono',monospace;color:var(--red2);font-size:12px}
+.cemp{color:var(--mt);text-align:center;padding:3rem 1rem;font-size:11px;letter-spacing:2px;opacity:.6}
+.ctot{font-family:'Share Tech Mono',monospace;font-size:16px;color:var(--tx);font-weight:700;display:flex;justify-content:space-between;align-items:center}
+#admin-section{display:none}#admin-section.show{display:block}
+.awrap{margin:0 2.5rem 2rem;border:1px solid rgba(176,18,40,.2);border-radius:20px;background:var(--bg2);overflow:hidden;box-shadow:0 8px 36px rgba(0,0,0,.18)}
+.ahdr{padding:1rem 1.5rem;background:linear-gradient(90deg,rgba(176,18,40,.08),rgba(22,72,204,.04));border-bottom:1px solid rgba(176,18,40,.12);display:flex;align-items:center;justify-content:space-between}
+.atitle{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:5px;color:var(--red2)}
+.atab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--mt);font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:600;letter-spacing:2.5px;padding:.75rem 1.3rem;cursor:pointer;transition:all .2s;text-transform:uppercase}
+.atab:hover{color:var(--tx)}.atab.active{color:var(--blue3);border-bottom-color:var(--blue2)}
+.abody{padding:1.3rem}
+.aitem{background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:.9rem;margin-bottom:8px}
+.ainp{background:var(--bg3);border:1px solid var(--bdr);color:var(--tx);font-family:'Rajdhani',sans-serif;font-size:13px;padding:6px 10px;border-radius:8px;outline:none;transition:all .2s}
+.ainp:focus{border-color:rgba(64,128,240,.35);box-shadow:0 0 0 2px rgba(22,72,204,.06)}
+.adel{background:rgba(176,18,40,.06);border:1px solid rgba(176,18,40,.2);color:var(--red2);font-size:11px;padding:4px 12px;cursor:pointer;border-radius:100px;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:1px;transition:all .2s}
+.adel:hover{background:var(--red2);color:#fff;border-color:var(--red2)}
+.achk{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--mt);cursor:pointer;letter-spacing:1px}
+.achk input{accent-color:var(--blue2)}
+.addbtn{background:rgba(22,72,204,.06);border:1px solid rgba(22,72,204,.2);color:var(--blue3);font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;letter-spacing:2.5px;padding:7px 17px;cursor:pointer;border-radius:100px;transition:all .2s;margin-top:8px}
+.addbtn:hover{background:rgba(22,72,204,.14)}
+.apbtn{background:linear-gradient(135deg,var(--red),var(--blue2));border:none;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:.85rem;letter-spacing:4px;padding:9px 22px;cursor:pointer;border-radius:100px;transition:all .2s;margin-top:10px}
+.apbtn:hover{opacity:.86;transform:translateY(-1px)}
+.dcard{background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:.85rem;margin-bottom:8px;display:flex;gap:10px;align-items:flex-start}
+.dcard.past{opacity:.35;border-color:transparent}
+.dcheck{width:17px;height:17px;accent-color:var(--blue2);cursor:pointer;flex-shrink:0;margin-top:3px}
+.dinfo{flex:1}.dname{font-weight:700;font-size:13px;letter-spacing:1px;margin-bottom:2px}
+.ddet{font-size:11px;color:var(--mt);margin-bottom:3px;line-height:1.5}
+.dprice{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--red2)}
+.dtime{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--mt);margin-top:4px;letter-spacing:1px}
+.fcard{background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:.6rem .9rem;margin-bottom:7px;display:flex;gap:8px;align-items:center}
+#pc-modal{display:none;position:fixed;inset:0;background:rgba(3,1,8,.95);z-index:700;align-items:center;justify-content:center;backdrop-filter:blur(16px)}
+#pc-modal.show{display:flex}
+#confirm-modal{display:none;position:fixed;inset:0;background:rgba(3,1,8,.92);z-index:700;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(12px)}
+#confirm-modal.show{display:flex}
+.pcbox{background:var(--bg2);border:1px solid var(--bdr2);border-radius:24px;padding:2.4rem 2rem;width:290px;text-align:center;box-shadow:0 40px 100px rgba(0,0,0,.9)}
+.pctitle{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:6px;color:var(--tx);margin-bottom:.2rem}
+.pcsub{font-size:9px;color:var(--mt);margin-bottom:1.6rem;letter-spacing:2.5px;text-transform:uppercase}
+.pcinp{width:100%;background:var(--bg3);border:1px solid var(--bdr2);color:var(--tx);font-family:'Share Tech Mono',monospace;font-size:16px;padding:10px 14px;border-radius:12px;outline:none;text-align:center;letter-spacing:8px;margin-bottom:.8rem}
+.pcent{width:100%;background:linear-gradient(135deg,var(--red),var(--red2));border:none;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:.95rem;letter-spacing:4px;padding:11px;cursor:pointer;border-radius:12px;margin-bottom:8px;transition:all .2s}
+.pcent:hover{opacity:.86}
+.pccan{background:transparent;border:1px solid var(--bdr);color:var(--mt);font-family:'Rajdhani',sans-serif;font-size:11px;letter-spacing:1px;padding:8px;cursor:pointer;border-radius:12px;width:100%;transition:all .2s}
+.pcerr{font-size:9px;color:var(--red2);margin-top:6px;display:none;font-family:'Share Tech Mono',monospace;letter-spacing:1.5px}
+.pin-dot{width:13px;height:13px;border-radius:50%;border:2px solid rgba(255,255,255,.14);background:transparent;transition:all .15s}
+.pin-dot.filled{background:var(--tx);border-color:var(--tx);transform:scale(1.25)}
+.pin-dot.err{background:var(--red2);border-color:var(--red2)}
+.pin-key{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);color:var(--tx);font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:1px;padding:.7rem;border-radius:50%;cursor:pointer;transition:all .14s;aspect-ratio:1;display:flex;align-items:center;justify-content:center;user-select:none}
+.pin-key:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.12)}
+.pin-key:active{transform:scale(.86);background:rgba(255,255,255,.18)}
+.conf-box{background:var(--bg2);border:1px solid var(--bdr2);border-radius:20px;width:100%;max-width:460px;max-height:88vh;overflow-y:auto;box-shadow:0 40px 100px rgba(0,0,0,.8)}
+.conf-hdr{padding:1.2rem 1.5rem;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between}
+.conf-title{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:4px;color:var(--blue3)}
+.conf-body{padding:1.4rem}
+.conf-row{display:flex;justify-content:space-between;align-items:baseline;padding:.45rem 0;border-bottom:1px solid var(--bdr);font-size:13px}
+.conf-row:last-child{border-bottom:none}
+.conf-lbl{color:var(--mt);font-size:8px;letter-spacing:3px;text-transform:uppercase}
+.conf-val{font-weight:700;text-align:right;max-width:62%;font-size:12px}
+.conf-items{background:var(--bg3);border:1px solid var(--bdr);border-radius:10px;padding:.85rem;margin:.7rem 0;font-size:11px;color:var(--mt);line-height:1.8}
+.conf-total{font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--red2);text-align:right;padding:.6rem 0;font-weight:700}
+.conf-check{display:flex;align-items:flex-start;gap:10px;background:rgba(22,72,204,.04);border:1px solid rgba(22,72,204,.12);border-radius:12px;padding:.85rem;margin:.7rem 0;cursor:pointer}
+.conf-check input{accent-color:var(--blue2);width:15px;height:15px;flex-shrink:0;margin-top:3px}
+.conf-check-lbl{font-size:12px;color:var(--tx);line-height:1.5}
+.conf-submit{width:100%;margin-top:.9rem;background:linear-gradient(135deg,var(--blue),var(--red2));border:none;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:.9rem;letter-spacing:6px;padding:13px;cursor:pointer;border-radius:12px;transition:all .25s}
+.conf-submit:hover{opacity:.88;transform:translateY(-1px)}
+#facts-bar{border-top:1px solid var(--bdr);padding:.9rem 2.5rem;background:var(--bg2);text-align:center}
+footer{text-align:center;padding:2rem 2.5rem;border-top:1px solid var(--bdr);font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--mt);letter-spacing:4px;line-height:1.8}
+.toast{position:fixed;bottom:24px;right:24px;background:rgba(12,8,25,.95);border:1px solid rgba(64,128,240,.22);color:var(--blue3);font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:600;letter-spacing:1.5px;padding:10px 20px;border-radius:100px;z-index:800;opacity:0;transform:translateY(14px);transition:all .28s cubic-bezier(.2,.8,.2,1);pointer-events:none;box-shadow:0 8px 32px rgba(0,0,0,.5);backdrop-filter:blur(8px)}
+.toast.show{opacity:1;transform:translateY(0)}
+/* LOGIN */
+#login-modal{display:none;position:fixed;inset:0;background:rgba(3,1,8,.95);z-index:700;align-items:center;justify-content:center;backdrop-filter:blur(16px)}
+#login-modal.show{display:flex}
+.login-box{background:var(--bg2);border:1px solid var(--bdr2);border-radius:22px;padding:2.2rem 2rem;width:320px;text-align:center;box-shadow:0 40px 100px rgba(0,0,0,.9)}
+.login-title{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:6px;margin-bottom:.3rem}
+.login-sub{font-size:10px;color:var(--mt);margin-bottom:1.5rem;letter-spacing:2px;text-transform:uppercase}
+/* ORDER HISTORY */
+#hist-modal{display:none;position:fixed;inset:0;background:rgba(3,1,8,.92);z-index:700;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(12px)}
+#hist-modal.show{display:flex}
+.hist-box{background:var(--bg2);border:1px solid var(--bdr2);border-radius:20px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;box-shadow:0 40px 100px rgba(0,0,0,.8)}
+.hist-hdr{padding:1.2rem 1.5rem;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:2;border-radius:20px 20px 0 0}
+.hist-title{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:4px;color:var(--blue3)}
+.hcard{background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:.9rem;margin:.8rem 1.5rem}
+.hcard-title{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--mt);letter-spacing:2px;margin-bottom:5px}
+.hcard-items{font-size:12px;color:var(--tx);line-height:1.7;margin-bottom:5px}
+.hcard-meta{display:flex;justify-content:space-between;align-items:center;font-size:11px}
+.hcard-price{font-family:'Share Tech Mono',monospace;color:var(--red2);font-weight:700}
+.hcard-status{font-size:9px;letter-spacing:1.5px;padding:2px 8px;border-radius:100px;text-transform:uppercase}
+.status-pending{background:rgba(176,18,40,.15);color:var(--red2)}
+.status-ready{background:rgba(240,165,0,.15);color:#f0a500}
+.status-delivered{background:rgba(22,72,204,.15);color:var(--blue3)}
+/* CUSTOMER LIST */
+.cust-row{background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:.75rem 1rem;margin-bottom:7px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.cust-name{font-weight:700;font-size:13px;letter-spacing:1px}
+.cust-meta{font-size:11px;color:var(--mt)}
+@media(max-width:600px){
+  nav{padding:.75rem 1.2rem}
+  .logo{font-size:1.3rem;letter-spacing:5px}
+  .nbtn{padding:5px 10px;font-size:10px}
+  .cbtn{padding:6px 13px;font-size:10px}
+  .hero{padding:3.5rem 1.2rem 2.5rem}
+  .hero h1{font-size:4rem;letter-spacing:8px}
+  .gwrap{padding:1.5rem 1.2rem 2rem}
+  .pgrid{grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px}
+  .osec{margin:0 1.2rem 2.5rem;padding:1.4rem}
+  .frow{grid-template-columns:1fr}
+  .awrap{margin:0 1.2rem 2rem}
+  .cpnl{width:100%;border-left:none;border-top:1px solid var(--bdr2)}
+  .modal,.conf-box{max-height:95vh}
+  #countdown-bar,#ann-bar{padding:.5rem 1.2rem}
+  footer{padding:1.5rem 1.2rem}
+  .hero::before{width:100%}
+}
+@media(max-width:400px){
+  .pgrid{grid-template-columns:1fr 1fr}
+  .hero h1{font-size:3rem;letter-spacing:5px}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">GlowLab</div>
+  <div class="nav-right">
+    <button class="modetgl" onclick="toggleMode()" id="mode-btn" title="Toggle light/dark">🌙</button>
+    <button class="nbtn" id="login-btn" onclick="openLogin()">Login</button>
+    <button class="nbtn" onclick="shareLink()" title="Copy link">🔗</button>
+    <button class="nbtn" onclick="openAdmin()">Admin</button>
+    <button class="cbtn" onclick="toggleCart()">Cart <span id="cart-count">0</span></button>
+  </div>
+</nav>
+
+<div id="ann-bar"><div id="ann-text"></div></div>
+
+<div id="countdown-bar" style="display:none;background:linear-gradient(90deg,rgba(77,143,255,.1),rgba(184,17,42,.08));border-bottom:1px solid rgba(77,143,255,.2);padding:.6rem 2.5rem;">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
+    <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--blue3);letter-spacing:3px;text-transform:uppercase;">✦ New Drop Incoming</div>
+    <div style="display:flex;align-items:center;gap:6px;" id="cd-blocks">
+      <div style="text-align:center;"><div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:3px;color:var(--tx);line-height:1;" id="cd-d">00</div><div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--mt);letter-spacing:2px;">DAYS</div></div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--mt);padding-bottom:12px;">:</div>
+      <div style="text-align:center;"><div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:3px;color:var(--tx);line-height:1;" id="cd-h">00</div><div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--mt);letter-spacing:2px;">HRS</div></div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--mt);padding-bottom:12px;">:</div>
+      <div style="text-align:center;"><div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:3px;color:var(--tx);line-height:1;" id="cd-m">00</div><div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--mt);letter-spacing:2px;">MIN</div></div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--mt);padding-bottom:12px;">:</div>
+      <div style="text-align:center;"><div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:3px;color:var(--red2);line-height:1;" id="cd-s">00</div><div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--mt);letter-spacing:2px;">SEC</div></div>
+    </div>
+  </div>
+</div>
+
+<div id="shop-closed-bar" style="display:none;background:linear-gradient(90deg,rgba(184,17,42,.18),rgba(184,17,42,.06));border-bottom:1px solid rgba(184,17,42,.3);padding:1.2rem 2.5rem;text-align:center;">
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:8px;color:var(--red2);margin-bottom:.2rem;">Shop Closed</div>
+  <div id="opens-at-display" style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--mt);letter-spacing:3px;text-transform:uppercase;">— check back soon —</div>
+</div>
+
+<div class="hero">
+  <div class="htag">✦ Handpoured Resin Studio ✦</div>
+  <h1 id="main-title">GLOWLAB</h1>
+  <p>Bold pieces. Dark energy. Built to glow.</p>
+  <div style="width:36px;height:1px;background:linear-gradient(90deg,var(--red2),var(--blue3));margin:1.6rem auto 0;opacity:.35;"></div>
+</div>
+
+<div class="gwrap">
+  <div class="section-head">
+    <span class="section-title">Collection</span>
+    <span class="glbl" id="grid-count-lbl"><span id="grid-count">0</span> items</span>
+  </div>
+  <div class="pgrid" id="pgrid"></div>
+</div>
+
+<div id="admin-section">
+  <div class="awrap">
+    <div class="ahdr">
+      <span class="atitle">Admin Panel</span>
+      <button class="nbtn" onclick="lockAdmin()" style="font-size:11px;">Lock</button>
+    </div>
+    <div style="display:flex;border-bottom:1px solid var(--bdr);flex-wrap:wrap;">
+      <button class="atab active" id="tab-ann" onclick="switchTab('ann')">📢 Banner</button>
+      <button class="atab" id="tab-items" onclick="switchTab('items')">📦 Items</button>
+      <button class="atab" id="tab-del" onclick="switchTab('del')">🚪 Deliveries <span id="del-badge" style="display:none;background:var(--red);color:#fff;font-size:9px;padding:1px 5px;border-radius:8px;margin-left:4px;"></span></button>
+      <button class="atab" id="tab-cust" onclick="switchTab('cust')">👥 Customers</button>
+      <button class="atab" id="tab-facts" onclick="switchTab('facts')">💡 Facts</button>
+    </div>
+
+    <div class="abody" id="tab-ann-body">
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:1rem 1.2rem;margin-bottom:1.2rem;">
+        <div><div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:2px;" id="shop-status-label">SHOP: OPEN</div><div style="font-size:11px;color:var(--mt);">Toggle to open or close the shop</div></div>
+        <div class="tgsw on" id="shop-sw" onclick="toggleShop()"><div class="tgkn"></div></div>
+      </div>
+      <div id="opens-at-wrap" style="display:none;margin-bottom:1.2rem;padding-bottom:1.2rem;border-bottom:1px solid var(--bdr);">
+        <div class="flbl" style="margin-bottom:6px;">Opens At</div>
+        <input class="ainp" id="opens-at-inp" placeholder="e.g. Tomorrow 10 AM..." style="width:100%;font-size:13px;padding:7px 10px;">
+        <button class="apbtn" style="margin-top:8px;padding:8px 18px;font-size:.85rem;" onclick="setOpensAt()">Save</button>
+      </div>
+      <div style="border-top:1px solid var(--bdr);padding-top:1.2rem;margin-bottom:1.2rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;">
+          <div><div class="flbl" style="margin-bottom:2px;">New Drop Countdown</div><div style="font-size:11px;color:var(--mt);">Show a live countdown on the site</div></div>
+          <div class="tgsw" id="cd-sw" onclick="togCountdown()"><div class="tgkn"></div></div>
+        </div>
+        <div id="cd-inputs" style="display:none;">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+            <div><div class="flbl" style="margin-bottom:4px;">Days</div><input class="ainp" type="number" id="cd-inp-d" min="0" max="999" value="0" style="width:100%;text-align:center;"></div>
+            <div><div class="flbl" style="margin-bottom:4px;">Hours</div><input class="ainp" type="number" id="cd-inp-h" min="0" max="23" value="0" style="width:100%;text-align:center;"></div>
+            <div><div class="flbl" style="margin-bottom:4px;">Minutes</div><input class="ainp" type="number" id="cd-inp-m" min="0" max="59" value="0" style="width:100%;text-align:center;"></div>
+            <div><div class="flbl" style="margin-bottom:4px;">Seconds</div><input class="ainp" type="number" id="cd-inp-s" min="0" max="59" value="0" style="width:100%;text-align:center;"></div>
+          </div>
+          <button class="apbtn" style="margin-top:0;padding:8px 18px;font-size:.85rem;" onclick="startCountdown()">Start Countdown</button>
+          <button class="addbtn" style="margin-top:0;margin-left:8px;" onclick="stopCountdown()">Stop</button>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--bdr);padding-top:1.2rem;margin-bottom:1.2rem;">
+        <div class="flbl" style="margin-bottom:6px;">Announcement Banner</div>
+        <textarea id="ann-inp" class="ainp" placeholder="Type your announcement..." style="width:100%;min-height:60px;resize:vertical;font-size:13px;padding:8px 10px;font-family:'Rajdhani',sans-serif;"></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button class="apbtn" style="margin-top:0;padding:8px 18px;font-size:.85rem;" onclick="setAnn()">Go Live</button>
+          <button class="addbtn" style="margin-top:0;" onclick="clearAnn()">No Announcement</button>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--bdr);padding-top:1.2rem;">
+        <div class="flbl" style="margin-bottom:8px;">Change Passcode</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="position:relative;"><input class="ainp" type="password" id="cp-old" placeholder="Current passcode" maxlength="6" oninput="this.value=this.value.replace(/\D/g,'')" style="width:100%;padding-right:52px;"><button onclick="togCpVis('cp-old','cp-old-btn')" id="cp-old-btn" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:transparent;border:none;color:var(--mt);cursor:pointer;font-size:11px;font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:1px;">SHOW</button></div>
+          <div style="position:relative;"><input class="ainp" type="password" id="cp-new" placeholder="New passcode (6 digits)" maxlength="6" oninput="this.value=this.value.replace(/\D/g,'')" style="width:100%;padding-right:52px;"><button onclick="togCpVis('cp-new','cp-new-btn')" id="cp-new-btn" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:transparent;border:none;color:var(--mt);cursor:pointer;font-size:11px;font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:1px;">SHOW</button></div>
+          <div style="position:relative;"><input class="ainp" type="password" id="cp-con" placeholder="Confirm new passcode" maxlength="6" oninput="this.value=this.value.replace(/\D/g,'')" style="width:100%;padding-right:52px;"><button onclick="togCpVis('cp-con','cp-con-btn')" id="cp-con-btn" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:transparent;border:none;color:var(--mt);cursor:pointer;font-size:11px;font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:1px;">SHOW</button></div>
+          <div id="cp-err" style="font-size:12px;color:var(--red2);font-family:'Share Tech Mono',monospace;display:none;"></div>
+          <button class="apbtn" style="margin-top:0;padding:8px 18px;font-size:.85rem;align-self:flex-start;" onclick="changePasscode()">Change Passcode</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="abody" id="tab-items-body" style="display:none;">
+      <div id="admin-items"></div>
+      <button class="addbtn" onclick="addItem()">+ Add Item</button><br>
+      <button class="apbtn" id="apply-btn" onclick="applyChanges()">Apply Changes</button>
+    </div>
+
+    <div class="abody" id="tab-del-body" style="display:none;">
+      <div id="del-summary" style="display:flex;gap:10px;margin-bottom:1.2rem;flex-wrap:wrap;"></div>
+      <div class="flbl" style="margin-bottom:8px;">Pending <span style="color:var(--mt);font-weight:400;letter-spacing:1px;font-size:10px;">(tick Ready when order is packed)</span></div>
+      <div id="del-pending"></div>
+      <div style="margin-top:1.2rem;padding-top:1.2rem;border-top:1px solid rgba(255,180,0,.2);display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <div style="width:10px;height:10px;border-radius:50%;background:#f0a500;flex-shrink:0;"></div>
+        <div class="flbl" style="margin-bottom:0;color:#f0a500;">Ready to Deliver <span id="ready-badge" style="display:none;background:#f0a500;color:#000;font-size:9px;padding:1px 5px;border-radius:8px;margin-left:4px;"></span></div>
+      </div>
+      <div id="del-ready"></div>
+      <div style="margin-top:1.2rem;padding-top:1.2rem;border-top:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;">
+        <div class="flbl" style="margin-bottom:0;">Past Deliveries</div>
+        <button class="addbtn" style="margin-top:0;font-size:11px;padding:4px 10px;" onclick="clearPast()">Clear All</button>
+      </div>
+      <div id="del-past" style="margin-top:8px;"></div>
+    </div>
+
+    <div class="abody" id="tab-facts-body" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
+        <div class="flbl" style="margin-bottom:0;">Rotation Speed</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input class="ainp" type="number" id="fact-speed" value="4" min="1" max="60" style="width:60px;text-align:center;">
+          <span style="font-size:12px;color:var(--mt);">seconds</span>
+          <button class="apbtn" style="margin-top:0;padding:6px 14px;font-size:.8rem;" onclick="applyFactSpeed()">Set</button>
+          <button class="addbtn" style="margin-top:0;" onclick="shuffleFacts()">⇄ Shuffle</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:1rem;">
+        <input class="ainp" id="new-fact-inp" placeholder="Type a new fact..." style="flex:1;font-size:13px;padding:7px 10px;">
+        <button class="addbtn" style="margin-top:0;" onclick="addFact()">+ Add</button>
+      </div>
+      <div id="facts-list"></div>
+    </div>
+
+    <div class="abody" id="tab-cust-body" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+        <div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:3px;">Customer List</div>
+          <div style="font-size:11px;color:var(--mt);margin-top:2px;">Everyone who has logged in or placed an order</div>
+        </div>
+        <button class="addbtn" style="margin-top:0;" onclick="exportCustomers()">⬇ Export</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:1rem;">
+        <input class="ainp" id="cust-search" placeholder="Search by name or flat..." style="flex:1;font-size:13px;padding:7px 10px;" oninput="renderCustomerList()">
+      </div>
+      <div id="cust-summary" style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap;"></div>
+      <div id="cust-list"></div>
+    </div>
+  </div>
+</div>
+
+<div class="osec">
+  <div class="otitle">Place Your Order</div>
+  <div class="osub">We deliver right to your door — within the apartment complex only.</div>
+  <div class="dbdg">🚪 Doorstep Delivery — Apartment Only</div>
+  <div class="frow">
+    <div class="fgrp"><label class="flbl">Your Name</label><input class="finp" id="f-name" placeholder="e.g. Aryan" oninput="this.value=this.value.replace(/[^a-zA-Z\s]/g,'')"></div>
+    <div class="fgrp"><label class="flbl">Phone Number</label><input class="finp" id="f-phone" type="tel" placeholder="10-digit number" maxlength="10" oninput="this.value=this.value.replace(/\D/g,'')"></div>
+  </div>
+  <div class="frow">
+    <div class="fgrp">
+      <label class="flbl">Block</label>
+      <input class="finp" id="f-block" placeholder="e.g. A" maxlength="1" oninput="this.value=this.value.replace(/[^a-zA-Z]/g,'').toUpperCase()">
+    </div>
+    <div class="fgrp">
+      <label class="flbl">Flat No.</label>
+      <input class="finp" id="f-flatno" placeholder="e.g. 304" maxlength="4" oninput="this.value=this.value.replace(/\D/g,'')">
+    </div>
+  </div>
+  <div class="frow full">
+    <div class="fgrp">
+      <label class="flbl">Preferred Delivery Time</label>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <input class="finp" id="f-t1" type="number" min="1" max="12" placeholder="From" style="width:80px;">
+        <select class="finp" id="f-ap1" style="width:75px;"><option>AM</option><option>PM</option></select>
+        <span style="color:var(--mt);font-family:'Share Tech Mono',monospace;font-size:13px;">to</span>
+        <input class="finp" id="f-t2" type="number" min="1" max="12" placeholder="To" style="width:80px;">
+        <select class="finp" id="f-ap2" style="width:75px;"><option>AM</option><option selected>PM</option></select>
+      </div>
+    </div>
+  </div>
+  <div class="frow full"><div class="fgrp"><label class="flbl">Feedback / Review (optional)</label><textarea class="ftxa" id="f-notes" placeholder="How was your experience? Any suggestions for us?"></textarea></div></div>
+  <div id="cart-summary" style="background:var(--bg3);border:1px solid var(--bdr);border-radius:10px;padding:1rem;margin-top:.8rem;font-size:13px;color:var(--mt);line-height:1.7;">Your cart is empty. Add items above.</div>
+  <button class="subbtn" onclick="submitOrder()">Review & Confirm Order</button>
+</div>
+
+<div id="facts-bar">
+  <div id="fact-text" style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--mt);letter-spacing:2.5px;transition:opacity .5s,transform .5s;"></div>
+</div>
+
+<footer>GlowLab Resin Studio · Apartment Deliveries Only · Handmade with Resin</footer>
+
+<div class="cpnl" id="cpnl">
+  <div class="cpnl-hdr">
+    <span class="cptitle">Cart</span>
+    <button class="xbtn" onclick="toggleCart()">✕</button>
+  </div>
+  <div class="cpnl-items">
+    <div class="cemp" id="cemp">✦ &nbsp; cart is empty</div>
+    <div id="citems"></div>
+  </div>
+  <div class="ctot" id="ctot" style="display:none;padding:1rem 1.4rem;border-top:1px solid var(--bdr);flex-shrink:0;"><span style="font-size:9px;color:var(--mt);letter-spacing:2px;">TOTAL</span><span>₹<span id="ctotval">0</span></span></div>
+</div>
+
+<div class="ovl" id="prod-ovl">
+  <div class="modal">
+    <div class="mhdr"><span class="mtitle" id="m-title"></span><button class="xbtn" onclick="closeModal()">✕</button></div>
+    <div class="mbody">
+      <div id="m-img-wrap" style="width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;margin-bottom:1rem;background:rgba(184,17,42,.06);display:flex;align-items:center;justify-content:center;">
+        <img id="m-img" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none;">
+        <span id="m-emoji" style="font-size:4rem;"></span>
+      </div>
+      <div style="font-size:13px;color:var(--mt);text-align:center;margin-bottom:4px;" id="m-sub"></div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:16px;color:var(--red2);text-align:center;margin-bottom:1rem;" id="m-price"></div>
+      <div id="sz-sec" style="display:none;"><div class="slbl">Choose Size</div><div style="display:flex;gap:8px;"><button class="szbtn sel" id="sz-sm" onclick="selSz('Small')">Small</button><button class="szbtn" id="sz-lg" onclick="selSz('Large')">Large</button></div></div>
+      <div id="txt-sec" style="display:none;"><div class="slbl">Letter / Number</div><input id="m-txt" class="finp" maxlength="2" placeholder="e.g. A, 7, 21..." style="font-family:'Share Tech Mono',monospace;font-size:1.1rem;letter-spacing:3px;text-transform:uppercase;" oninput="this.value=this.value.toUpperCase();updatePriceDisplay()"><div style="font-size:11px;color:var(--mt);margin-top:4px;">1 letter or 1-digit number · <span style="color:var(--red2);">2-digit number = 2× price</span></div></div>
+      <div id="colour-section"><div class="slbl">Choose Your Colour</div>
+      <div class="copts" id="copts"></div>
+      <!-- COMBO -->
+      <div id="combo-sec" style="margin-top:.9rem;background:rgba(77,143,255,.04);border:1px solid rgba(77,143,255,.13);border-radius:12px;padding:.9rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="togCombo()">
+          <div><div style="font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;color:var(--blue3);letter-spacing:2px;text-transform:uppercase;">⊕ Combo Colour</div><div style="font-size:11px;color:var(--mt);margin-top:2px;">Mix two colours in one piece · +10%</div></div>
+          <div class="tgsw" id="combo-sw"><div class="tgkn"></div></div>
+        </div>
+        <div id="combo-colors" style="display:none;margin-top:.8rem;">
+          <div class="slbl" style="margin-top:0;">Second Colour</div>
+          <div class="copts" id="combo-copts"></div>
+        </div>
+      </div>
+      </div>
+      <div class="gsec">
+        <div class="gtog" onclick="togGlow()">
+          <div><div class="glbl2">✦ Glow in the Dark</div><div style="font-size:11px;color:var(--mt);margin-top:2px;">+15% · pick a combo colour for +25%</div></div>
+          <div class="tgsw" id="glow-sw"><div class="tgkn"></div></div>
+        </div>
+        <div id="glow-colors" style="display:none;">
+          <div class="slbl" style="margin-top:.8rem;">Combo Colour <span style="color:var(--mt);font-size:9px;">(optional)</span></div>
+          <div class="copts">
+            <div class="copt" onclick="selGlow('Red','gr')"><div class="csw" style="background:#ff2244;" id="sw-gr"></div><span class="clbl">Red</span></div>
+            <div class="copt" onclick="selGlow('Blue','gb')"><div class="csw" style="background:#2d7fff;" id="sw-gb"></div><span class="clbl">Blue</span></div>
+            <div class="copt" onclick="selGlow('Purple','gp')"><div class="csw" style="background:#a855f7;" id="sw-gp"></div><span class="clbl">Purple</span></div>
+            <div class="copt" onclick="selGlow(null,null)"><div class="csw" id="sw-gn" style="background:transparent;border:1px dashed var(--mt);display:flex;align-items:center;justify-content:center;"><span style="font-size:14px;color:var(--mt);">✕</span></div><span class="clbl">None</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="ssec"><div><div style="font-size:13px;font-weight:700;letter-spacing:1px;">Sample Option</div><div style="font-size:11px;color:var(--mt);margin-top:2px;">Get a test piece first — we'll confirm cost before making your full order</div></div><div class="tgsw" id="samp-sw" onclick="togSamp()"><div class="tgkn"></div></div></div>
+      <div class="slbl" style="margin-top:1rem;">Quantity</div>
+      <div class="qwrap"><button class="qbtn" onclick="chgQty(-1)">−</button><span class="qdsp" id="m-qty">1</span><button class="qbtn" onclick="chgQty(1)">+</button></div>
+      <button class="acbtn" onclick="addToCart()">Add to Cart</button>
+      <button onclick="closeModal()" style="width:100%;margin-top:8px;background:transparent;border:1px solid var(--bdr);color:var(--mt);font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;letter-spacing:2px;padding:10px;cursor:pointer;border-radius:100px;transition:all .2s;" onmouseover="this.style.borderColor='var(--blue2)';this.style.color='var(--blue3)'" onmouseout="this.style.borderColor='var(--bdr)';this.style.color='var(--mt)'">Done — Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ORDER CONFIRM MODAL -->
+<div id="confirm-modal">
+  <div class="conf-box">
+    <div class="conf-hdr"><span class="conf-title">Confirm Order</span><button class="xbtn" onclick="closeConfirm()">✕</button></div>
+    <div class="conf-body">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--mt);letter-spacing:2px;margin-bottom:.8rem;text-transform:uppercase;">Your Details</div>
+      <div class="conf-row"><span class="conf-lbl">Name</span><span class="conf-val" id="cf-name"></span></div>
+      <div class="conf-row"><span class="conf-lbl">Phone</span><span class="conf-val" id="cf-phone"></span></div>
+      <div class="conf-row"><span class="conf-lbl">Flat</span><span class="conf-val" id="cf-flat"></span></div>
+      <div class="conf-row"><span class="conf-lbl">Delivery Time</span><span class="conf-val" id="cf-time"></span></div>
+      <div class="conf-row" id="cf-notes-row"><span class="conf-lbl">Feedback</span><span class="conf-val" id="cf-notes"></span></div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--mt);letter-spacing:2px;margin:.8rem 0 .4rem;text-transform:uppercase;">Items Ordered</div>
+      <div class="conf-items" id="cf-items"></div>
+      <div class="conf-total" id="cf-total"></div>
+      <label class="conf-check">
+        <input type="checkbox" id="cf-agree">
+        <span class="conf-check-lbl">I confirm that the details above are correct and I agree to receive delivery at my doorstep within the apartment complex.</span>
+      </label>
+      <button class="conf-submit" onclick="confirmAndPlace()">Place Order</button>
+    </div>
+  </div>
+</div>
+
+<div id="pc-modal">
+  <div class="pcbox">
+    <div class="pctitle">Admin Access</div>
+    <div class="pcsub">Enter 6-digit passcode</div>
+    <div style="display:flex;justify-content:center;gap:12px;margin:1.2rem 0;">
+      <div class="pin-dot" id="pd-0"></div>
+      <div class="pin-dot" id="pd-1"></div>
+      <div class="pin-dot" id="pd-2"></div>
+      <div class="pin-dot" id="pd-3"></div>
+      <div class="pin-dot" id="pd-4"></div>
+      <div class="pin-dot" id="pd-5"></div>
+    </div>
+    <div id="pc-err" style="font-size:12px;color:var(--red2);font-family:'Share Tech Mono',monospace;display:none;text-align:center;margin-bottom:.8rem;">Incorrect passcode</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto 1rem;">
+      <button class="pin-key" onclick="pinPress(1)">1</button>
+      <button class="pin-key" onclick="pinPress(2)">2</button>
+      <button class="pin-key" onclick="pinPress(3)">3</button>
+      <button class="pin-key" onclick="pinPress(4)">4</button>
+      <button class="pin-key" onclick="pinPress(5)">5</button>
+      <button class="pin-key" onclick="pinPress(6)">6</button>
+      <button class="pin-key" onclick="pinPress(7)">7</button>
+      <button class="pin-key" onclick="pinPress(8)">8</button>
+      <button class="pin-key" onclick="pinPress(9)">9</button>
+      <button class="pin-key" onclick="closePc()" style="font-size:11px;letter-spacing:1px;color:var(--mt);">Cancel</button>
+      <button class="pin-key" onclick="pinPress(0)">0</button>
+      <button class="pin-key" onclick="pinDel()">⌫</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- LOGIN MODAL -->
+<div id="login-modal">
+  <div class="login-box">
+    <div class="login-title">Welcome Back</div>
+    <div class="login-sub">Sign in to track your orders</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:1rem;">
+      <div>
+        <div class="flbl" style="margin-bottom:5px;text-align:left;">Your Name</div>
+        <input class="finp" id="li-name" placeholder="e.g. Aryan" oninput="this.value=this.value.replace(/[^a-zA-Z\s]/g,'')">
+      </div>
+      <div>
+        <div class="flbl" style="margin-bottom:5px;text-align:left;">Block</div>
+        <input class="finp" id="li-block" placeholder="e.g. A" maxlength="1" oninput="this.value=this.value.replace(/[^a-zA-Z]/g,'').toUpperCase()">
+      </div>
+      <div>
+        <div class="flbl" style="margin-bottom:5px;text-align:left;">Flat No.</div>
+        <input class="finp" id="li-flat" placeholder="e.g. 304" maxlength="4" oninput="this.value=this.value.replace(/\D/g,'')">
+      </div>
+      <div>
+        <div class="flbl" style="margin-bottom:5px;text-align:left;">Phone (last 4 digits)</div>
+        <input class="finp" id="li-phone" placeholder="e.g. 9939" maxlength="4" oninput="this.value=this.value.replace(/\D/g,'')">
+      </div>
+    </div>
+    <button class="subbtn" style="letter-spacing:4px;padding:12px;" onclick="doLogin()">Sign In</button>
+    <button class="pccan" style="margin-top:8px;" onclick="closeLogin()">Cancel</button>
+    <div id="li-err" style="font-size:10px;color:var(--red2);margin-top:8px;font-family:'Share Tech Mono',monospace;letter-spacing:1px;display:none;"></div>
+  </div>
+</div>
+
+<!-- ORDER HISTORY MODAL -->
+<div id="hist-modal">
+  <div class="hist-box">
+    <div class="hist-hdr">
+      <span class="hist-title">Your Orders</span>
+      <button class="xbtn" onclick="closeHist()">✕</button>
+    </div>
+    <div style="padding:1rem 1.5rem .5rem;">
+      <div id="hist-user" style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--mt);letter-spacing:2px;"></div>
+    </div>
+    <div id="hist-list"></div>
+    <div style="height:1rem;"></div>
+  </div>
+</div>
+
+<script>
+let _pc=atob('ODM4NDg4'); // base64 encoded
+function getPC(){return _pc;}
+function setPC(v){_pc=v;}
+const CHX={Red:'#c0132a',Blue:'#1a5ae8',Purple:'#7b1ae8'};
+let prods=[
+  {id:1,name:'Letter Keychain',sub:'A keychain with the letter of your choice',emoji:'🔑',price:50,maxQty:10,colors:['Red','Blue','Purple','Clear'],hasSz:false,hasText:true,img:'',badge:'',badgeExpiry:null},
+  {id:2,name:'Ring',sub:'A ring handmade with resin (Not a jewelry item)',emoji:'💍',price:10,maxQty:5,colors:['Red','Blue','Purple','Clear'],hasSz:true,hasText:false,img:'',badge:'',badgeExpiry:null},
+  {id:3,name:'Bookmark - Bunny',sub:'A book mark in the shape of a bunny',emoji:'🐰',price:100,maxQty:3,colors:['Red','Blue','Clear'],hasSz:false,hasText:false,img:'',badge:'',badgeExpiry:null},
+  {id:4,name:'Bookmark - Whale',sub:'A bookmark in the shape of a whale',emoji:'🐳',price:100,maxQty:3,colors:['Red','Blue','Purple'],hasSz:false,hasText:false,img:'',badge:'',badgeExpiry:null},
+  {id:5,name:'Letter in Clear Ball',sub:"As the name suggests, it's a letter in a Clear ball",emoji:'🔮',price:350,maxQty:1,colors:['Red','Blue'],hasSz:false,hasText:false,img:'',badge:'',badgeExpiry:null},
+  {id:6,name:'Pot',sub:'A pot made with resin (will not come with plant)',emoji:'🌱',price:300,maxQty:4,colors:['Red','Blue','Purple','Clear'],hasSz:true,hasText:false,img:'',badge:'',badgeExpiry:null},
+];
+let cart=[],adminOn=false,curProd=null,selCol=null,selGlowCol=null,selComboCol=null,glowOn=false,comboOn=false,sampOn=false,selSzV='Small',qty=1;
+let pendingOrders=[],pastOrders=[],shopOpen=true,pendingOrderData=null;
+let nextId=7;
+let facts=[
+  '✦ No two resin pieces are ever identical — yours is one of a kind',
+  '✦ Resin art became a fine art form in the 1960s, born from industrial use',
+  '✦ Resin can be layered to create depth — some pieces have 3 or more pours',
+  '✦ Resin is a liquid polymer that hardens under UV light or a catalyst',
+  '✦ Like a glow-in-the-dark piece, this very page absorbs light in bright mode — switch to dark and watch the title luminescence fade over time',
+  '✦ For information or enquires, Contact - 8096559939',
+  '✦ We deliver only within the apartment — fresh to your door every time',
+  '✦ Clear resin has a refractive index close to glass — that\'s why it sparkles',
+  '✦ Alcohol ink in resin creates those galaxy swirl effects you love',
+  '✦ Glow-in-the-dark resin charges under any light source and glows for hours',
+  '✦ Each GlowLab piece is poured and finished entirely by hand',
+];
+
+function dotStyle(c){if(c==='Clear')return 'background:linear-gradient(135deg,#fff 45%,#aaa 45%,#aaa 55%,#fff 55%);border-color:rgba(128,128,128,.3);';return 'background:'+CHX[c]+';';}
+
+function renderProds(){
+  const g=document.getElementById('pgrid');
+  document.getElementById('grid-count').textContent=prods.length;
+  if(!prods.length){g.innerHTML='<div style="grid-column:1/-1;padding:4rem 2rem;text-align:center;color:var(--mt);font-family:\'Share Tech Mono\',monospace;font-size:11px;letter-spacing:3px;border:1px dashed var(--bdr);border-radius:14px;">✦ &nbsp; no items yet — check back soon &nbsp; ✦</div>';return;}
+  g.innerHTML=prods.map(p=>{
+    const dots=(p.colors||[]).map(c=>`<div class="dot" style="${dotStyle(c)}"></div>`).join('');
+    const imgHtml=p.img?`<img src="${p.img}" alt="${p.name}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;"><span class="emoji-fb" style="position:relative;z-index:1;font-size:0;">${p.emoji}</span>`:`<span class="emoji-fb">${p.emoji}</span>`;
+    return `<div class="pcard" onclick="openProd(${p.id})">
+      <div class="pimg" style="background:rgba(192,19,42,.08)">${imgHtml}
+        ${isNewActive(p)?'<div class="bdg bnew">New</div>':''}${p.badge==='sale'?'<div class="bdg bsale">Sale</div>':''}
+      </div>
+      <div class="pinf"><div class="pname">${p.name}</div><div class="psub">${p.sub}</div><div class="pdots">${dots}</div>
+        <div class="pbot"><div class="pprice">${p.old?'<span class="old">&#8377;'+p.old+'</span>':''}&#8377;${p.price}</div>
+          <button class="bbtn" onclick="event.stopPropagation();openProd(${p.id})">Customize</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openProd(id){
+  curProd=prods.find(p=>p.id===id);if(!curProd)return;
+  selCol=null;selGlowCol=null;selComboCol=null;glowOn=false;comboOn=false;sampOn=false;selSzV='Small';
+  const alreadyCarted=cartedQty(curProd);
+  const available=Math.max(0,(curProd.maxQty||5)-alreadyCarted);
+  if(available===0){showToast('Max quantity for this item already in cart!');return;}
+  qty=1;
+  document.getElementById('m-title').textContent=curProd.name;
+  document.getElementById('m-sub').textContent=curProd.sub;
+  document.getElementById('m-price').textContent='₹'+curProd.price;
+  document.getElementById('m-qty').textContent='1';
+  const img=document.getElementById('m-img'),em=document.getElementById('m-emoji');
+  if(curProd.img){img.src=curProd.img;img.style.display='block';em.style.display='none';}
+  else{img.style.display='none';em.style.display='block';em.textContent=curProd.emoji;}
+  document.getElementById('glow-sw').classList.remove('on');
+  document.getElementById('glow-colors').style.display='none';
+  document.getElementById('colour-section').style.display='block';
+  document.getElementById('combo-sw').classList.remove('on');
+  document.getElementById('combo-colors').style.display='none';
+  document.getElementById('samp-sw').classList.remove('on');
+  const szs=document.getElementById('sz-sec');
+  if(curProd.hasSz){szs.style.display='block';document.getElementById('sz-sm').classList.add('sel');document.getElementById('sz-lg').classList.remove('sel');}else szs.style.display='none';
+  const txs=document.getElementById('txt-sec');
+  if(curProd.hasText){txs.style.display='block';document.getElementById('m-txt').value='';}else txs.style.display='none';
+  const cm=[{name:'Red',key:'cr',style:'background:#c0132a;'},{name:'Blue',key:'cb',style:'background:#1a5ae8;'},{name:'Purple',key:'cp',style:'background:#7b1ae8;'},{name:'Clear',key:'cc',style:'background:linear-gradient(135deg,#fff 45%,#ccc 45%,#ccc 55%,#fff 55%);border:1px solid rgba(128,128,128,.3);'}];
+  const allowed=curProd.colors||['Red','Blue','Purple'];
+  const filteredCm=cm.filter(c=>allowed.includes(c.name));
+  document.getElementById('copts').innerHTML=filteredCm.map(c=>`<div class="copt" onclick="selColor('${c.name}','${c.key}')"><div class="csw" style="${c.style}" id="sw-${c.key}"></div><span class="clbl">${c.name}</span></div>`).join('');
+  document.getElementById('combo-copts').innerHTML=filteredCm.map(c=>`<div class="copt" onclick="selComboColor('${c.name}','${c.key}')"><div class="csw" style="${c.style}" id="sw-combo-${c.key}"></div><span class="clbl">${c.name}</span></div>`).join('');
+  document.getElementById('prod-ovl').classList.add('show');
+}
+
+function closeModal(){document.getElementById('prod-ovl').classList.remove('show');}
+
+function isTwoDigit(){
+  if(!curProd?.hasText)return false;
+  const v=document.getElementById('m-txt')?.value.trim()||'';
+  return /^\d{2}$/.test(v);
+}
+
+function calcPrice(){
+  if(!curProd)return 0;
+  let base=curProd.price;
+  if(isTwoDigit()) base=base*2;
+  if(curProd.hasSz&&selSzV==='Large') base=base*1.5; // large = +50%
+  if(glowOn&&selGlowCol) return Math.round(base*1.25);
+  if(glowOn)             return Math.round(base*1.15);
+  if(comboOn)            return Math.round(base*1.10);
+  return Math.round(base);
+}
+
+function updatePriceDisplay(){
+  if(!curProd)return;
+  const p=calcPrice();
+  let label='₹'+p;
+  const twoD=isTwoDigit();
+  const large=curProd.hasSz&&selSzV==='Large';
+  if(twoD)               label+=' <span style="font-size:11px;color:var(--mt);">(×2 two-digit)</span>';
+  if(large)              label+=' <span style="font-size:11px;color:var(--mt);">(+50% large)</span>';
+  if(glowOn&&selGlowCol) label+=' <span style="font-size:11px;color:var(--mt);">(+25% glow+colour)</span>';
+  else if(glowOn)        label+=' <span style="font-size:11px;color:var(--mt);">(+15% glow)</span>';
+  else if(comboOn)       label+=' <span style="font-size:11px;color:var(--mt);">(+10% combo)</span>';
+  document.getElementById('m-price').innerHTML=label;
+}
+
+function selColor(name,key){
+  selCol=name;
+  document.querySelectorAll('#copts .csw').forEach(s=>s.classList.remove('sel'));
+  const e=document.getElementById('sw-'+key);if(e)e.classList.add('sel');
+  if(comboOn&&selComboCol===name){selComboCol=null;document.querySelectorAll('#combo-copts .csw').forEach(s=>s.classList.remove('sel'));}
+  // grey out matching colour in combo picker
+  document.querySelectorAll('#combo-copts .copt').forEach(opt=>{
+    const isSame=opt.querySelector('.csw')&&opt.onclick&&opt.getAttribute('onclick')&&opt.getAttribute('onclick').includes("'"+name+"'");
+    opt.style.opacity=isSame?'0.3':'1';opt.style.pointerEvents=isSame?'none':'auto';
+  });
+}function togCombo(){comboOn=!comboOn;document.getElementById('combo-sw').classList.toggle('on',comboOn);document.getElementById('combo-colors').style.display=comboOn?'block':'none';if(!comboOn){selComboCol=null;document.querySelectorAll('#combo-copts .csw').forEach(s=>s.classList.remove('sel'));}updatePriceDisplay();}
+function selComboColor(name,key){if(name===selCol){showToast('Pick a different colour for the combo!');return;}selComboCol=name;document.querySelectorAll('#combo-copts .csw').forEach(s=>s.classList.remove('sel'));const e=document.getElementById('sw-combo-'+key);if(e)e.classList.add('sel');updatePriceDisplay();}
+function togGlow(){glowOn=!glowOn;document.getElementById('glow-sw').classList.toggle('on',glowOn);document.getElementById('glow-colors').style.display=glowOn?'block':'none';document.getElementById('colour-section').style.display=glowOn?'none':'block';if(!glowOn){selGlowCol=null;['sw-gr','sw-gb','sw-gp','sw-gn'].forEach(k=>{const e=document.getElementById(k);if(e)e.classList.remove('sel');});}else{selCol='Glow';comboOn=false;document.getElementById('combo-sw').classList.remove('on');document.getElementById('combo-colors').style.display='none';selComboCol=null;}updatePriceDisplay();}
+function selGlow(name,key){selGlowCol=name;['sw-gr','sw-gb','sw-gp','sw-gn'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.remove('sel');});const el=key?document.getElementById('sw-'+key):document.getElementById('sw-gn');if(el)el.classList.add('sel');updatePriceDisplay();}
+function togSamp(){sampOn=!sampOn;document.getElementById('samp-sw').classList.toggle('on',sampOn);}
+function selSz(s){selSzV=s;document.getElementById('sz-sm').classList.toggle('sel',s==='Small');document.getElementById('sz-lg').classList.toggle('sel',s==='Large');updatePriceDisplay();}
+function cartedQty(prod){return cart.filter(it=>it.prod.id===prod.id).reduce((s,it)=>s+it.qty,0);}
+function chgQty(d){
+  const max=curProd?.maxQty||5;
+  const alreadyInCart=cartedQty(curProd);
+  const available=max-alreadyInCart;
+  if(d>0&&qty>=available){showToast('Max '+max+' per order — '+alreadyInCart+' already in cart');return;}
+  qty=Math.min(available,Math.max(1,qty+d));
+  document.getElementById('m-qty').textContent=qty;
+}
+
+function addToCart(){
+  if(!selCol&&!glowOn){showToast('Pick a colour first!');return;}
+  if(comboOn&&!selComboCol){showToast('Pick a second colour for the combo!');return;}
+  if(comboOn&&selComboCol===selCol){showToast('Combo colours must be different!');return;}
+  const txt=curProd.hasText?document.getElementById('m-txt').value.trim().toUpperCase():'';
+  if(curProd.hasText){if(!txt){showToast('Enter a letter or number!');return;}if(!/^[A-Z]$/.test(txt)&&!/^\d{1,2}$/.test(txt)){showToast('1 letter only, or 1–2 digit number!');return;}}
+  const max=curProd.maxQty||5;
+  const alreadyInCart=cartedQty(curProd);
+  if(alreadyInCart>=max){showToast('Max '+max+' per order already in cart!');return;}
+  const allowed=Math.min(qty,max-alreadyInCart);
+  const unitPrice=calcPrice();
+  cart.push({prod:curProd,color:selCol,combo:comboOn?selComboCol:null,glow:glowOn?(selGlowCol||null):null,glowOn,size:curProd.hasSz?selSzV:null,text:txt||null,sample:sampOn,qty:allowed,total:unitPrice*allowed});
+  updateCart();
+  showToast('Added! Customize again for a different variant ✓');
+  selCol=null;selGlowCol=null;selComboCol=null;glowOn=false;comboOn=false;sampOn=false;qty=1;
+  document.getElementById('m-price').textContent='₹'+curProd.price;
+  document.getElementById('m-qty').textContent='1';
+  document.getElementById('glow-sw').classList.remove('on');
+  document.getElementById('glow-colors').style.display='none';
+  document.getElementById('colour-section').style.display='block';
+  document.getElementById('combo-sw').classList.remove('on');
+  document.getElementById('combo-colors').style.display='none';
+  document.getElementById('samp-sw').classList.remove('on');
+  document.querySelectorAll('#copts .csw').forEach(s=>s.classList.remove('sel'));
+  document.querySelectorAll('#combo-copts .csw').forEach(s=>s.classList.remove('sel'));
+  ['sw-gr','sw-gb','sw-gp','sw-gn'].forEach(k=>{const e=document.getElementById(k);if(e)e.classList.remove('sel');});
+  if(curProd.hasText)document.getElementById('m-txt').value='';
+  if(curProd.hasSz){document.getElementById('sz-sm').classList.add('sel');document.getElementById('sz-lg').classList.remove('sel');selSzV='Small';}
+}
+
+function updateCart(){
+  const tot=cart.reduce((s,i)=>s+i.total,0),tq=cart.reduce((s,i)=>s+i.qty,0);
+  document.getElementById('cart-count').textContent=tq;
+  const ci=document.getElementById('citems'),ce=document.getElementById('cemp'),ct=document.getElementById('ctot'),csv=document.getElementById('cart-summary');
+  if(!cart.length){ci.innerHTML='';ce.style.display='block';ct.style.display='none';csv.textContent='Your cart is empty. Add items above.';csv.style.color='var(--mt)';return;}
+  ce.style.display='none';ct.style.display='block';document.getElementById('ctotval').textContent=tot;
+  ci.innerHTML=cart.map((it,i)=>`<div class="citem"><div class="ciname">${it.prod.emoji} ${it.prod.name}</div><div class="cidet">Colour: ${it.color}${it.combo?' + '+it.combo+' (combo)':''}${it.glow?' · Glow+'+it.glow:it.glowOn?' · Glow: Yellow':''}${it.size?' · '+it.size:''}${it.text?' · "'+it.text+'"':''}${it.sample?' · Sample':''}</div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;"><div style="display:flex;align-items:center;gap:8px;"><button onclick="cartQty(${i},-1)" style="background:var(--bg3);border:1px solid var(--bdr2);color:var(--tx);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;">−</button><span style="font-family:'Share Tech Mono',monospace;font-size:13px;min-width:18px;text-align:center;">${it.qty}</span><button onclick="cartQty(${i},1)" style="background:var(--bg3);border:1px solid var(--bdr2);color:var(--tx);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;">+</button></div><div class="ciprice" style="margin-top:0;">&#8377;${it.total} <button onclick="rmCart(${i})" style="background:transparent;border:none;color:var(--red2);cursor:pointer;font-size:11px;margin-left:6px;letter-spacing:1px;font-family:'Rajdhani',sans-serif;font-weight:700;">Remove</button></div></div></div>`).join('');
+  csv.style.color='var(--tx)';
+  csv.innerHTML=cart.map(it=>`<div style="margin-bottom:4px;">${it.prod.emoji} <b>${it.prod.name}</b> — ${it.color}${it.combo?' + '+it.combo:''} ${it.combo?'<span style="font-size:10px;color:var(--blue3);letter-spacing:1px;">[combo]</span>':''}${it.glow?' + Glow '+it.glow:it.glowOn?' + Glow (Yellow)':''}${it.size?' ('+it.size+')':''}${it.text?' · "'+it.text+'"':''}${it.sample?' [Sample]':''} x${it.qty} — &#8377;${it.total}</div>`).join('')+`<div style="margin-top:8px;font-weight:700;color:var(--red2);">Total: &#8377;${tot}</div>`;
+}
+
+function rmCart(i){cart.splice(i,1);updateCart();}
+function cartQty(i,d){
+  const it=cart[i];if(!it)return;
+  const max=it.prod.maxQty||5;
+  const otherQty=cart.filter((_,j)=>j!==i&&cart[j].prod.id===it.prod.id).reduce((s,x)=>s+x.qty,0);
+  const newQty=Math.min(max-otherQty,Math.max(1,it.qty+d));
+  if(newQty===it.qty){if(d>0)showToast('Max '+max+' per order for this item');return;}
+  const unitPrice=it.total/it.qty;
+  it.qty=newQty;it.total=Math.round(unitPrice*newQty);
+  updateCart();
+}
+function toggleCart(){document.getElementById('cpnl').classList.toggle('show');}
+
+function submitOrder(){
+  const name=document.getElementById('f-name').value.trim(),phone=document.getElementById('f-phone').value.trim(),block=document.getElementById('f-block').value.trim(),flatno=document.getElementById('f-flatno').value.trim(),notes=document.getElementById('f-notes').value.trim();
+  const flat=block&&flatno?`Block ${block}, Flat ${flatno}`:block||flatno;
+  const t1=document.getElementById('f-t1').value.trim(),ap1=document.getElementById('f-ap1').value,t2=document.getElementById('f-t2').value.trim(),ap2=document.getElementById('f-ap2').value;
+  if(!name||!phone||!block||!flatno){showToast('Fill in all required fields!');return;}
+  if(phone.length!==10){showToast('Phone number must be 10 digits!');return;}
+  if(!cart.length){showToast('Add items to cart first!');return;}
+  const delivTime=(t1&&t2)?`${t1} ${ap1} – ${t2} ${ap2}`:'Not specified';
+  const tot=cart.reduce((s,i)=>s+i.total,0);
+  const itemStr=cart.map(it=>`${it.prod.emoji} ${it.prod.name} (${it.color}${it.combo?'+'+it.combo+' combo':''}${it.glowOn?' +Glow':''}${it.size?' '+it.size:''}${it.text?' "'+it.text+'"':''}) x${it.qty}`).join(', ');
+  const now=new Date();
+  const time=now.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})+' '+now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  pendingOrderData={name,phone,flat,notes,items:itemStr,total:tot,time,delivTime};
+  document.getElementById('cf-name').textContent=name;
+  document.getElementById('cf-phone').textContent=phone;
+  document.getElementById('cf-flat').textContent=flat;
+  document.getElementById('cf-time').textContent=delivTime;
+  const nr=document.getElementById('cf-notes-row');
+  if(notes){document.getElementById('cf-notes').textContent=notes;nr.style.display='flex';}else nr.style.display='none';
+  document.getElementById('cf-items').innerHTML=cart.map(it=>`${it.prod.emoji} ${it.prod.name} — ${it.color}${it.glow?' + Glow '+it.glow:it.glowOn?' + Glow (Yellow)':''}${it.size?' ('+it.size+')':''}${it.text?' · "'+it.text+'"':''}${it.sample?' [Sample]':''} × ${it.qty} — &#8377;${it.total}`).join('<br>');
+  document.getElementById('cf-total').textContent='Total: ₹'+tot;
+  document.getElementById('cf-agree').checked=false;
+  document.getElementById('confirm-modal').classList.add('show');
+}
+
+function confirmAndPlace(){
+  if(!document.getElementById('cf-agree').checked){showToast('Please confirm the details first!');return;}
+  if(!pendingOrderData)return;
+  const orderId='GL-'+Math.floor(1000+Math.random()*9000);
+  const fullOrder={...pendingOrderData,orderId,status:'pending'};
+  pendingOrders.push(fullOrder);
+  // attach to customer record
+  if(currentUser){
+    const key=currentUser.key;
+    if(!customers[key])customers[key]={...currentUser,joinDate:new Date().toLocaleDateString('en-IN'),orders:[]};
+    customers[key].orders.push({...fullOrder});
+  } else {
+    // register as guest customer
+    const name=pendingOrderData.name,flat=pendingOrderData.flat;
+    const phone4=pendingOrderData.phone.slice(-4);
+    const parts=flat.replace('Block ','').split(', Flat ');
+    const block=parts[0]||'?',flatno=parts[1]||'?';
+    const key=custKey(name,block,flatno,phone4);
+    if(!customers[key])customers[key]={name,block,flat:flatno,phone4,key,joinDate:new Date().toLocaleDateString('en-IN'),orders:[]};
+    customers[key].orders.push({...fullOrder});
+  }
+  pendingOrderData=null;
+  updateDelBadge();
+  closeConfirm();
+  showToast(`Order ${orderId} placed! 🚪`);
+  cart=[];updateCart();
+  ['f-name','f-phone','f-block','f-flatno','f-notes','f-t1','f-t2'].forEach(id=>document.getElementById(id).value='');
+}
+
+function closeConfirm(){document.getElementById('confirm-modal').classList.remove('show');}
+
+let pinVal='';
+function pinPress(n){
+  if(pinVal.length>=6)return;
+  pinVal+=n;
+  updateDots();
+  if(pinVal.length===6)setTimeout(chkPc,120);
+}
+function pinDel(){if(pinVal.length>0){pinVal=pinVal.slice(0,-1);updateDots();}}
+function updateDots(){
+  for(let i=0;i<6;i++){const d=document.getElementById('pd-'+i);if(d){d.classList.toggle('filled',i<pinVal.length);d.classList.remove('err');}}
+}
+function openAdmin(){if(adminOn){showAdmin();return;}pinVal='';updateDots();document.getElementById('pc-err').style.display='none';document.getElementById('pc-modal').classList.add('show');}
+function closePc(){document.getElementById('pc-modal').classList.remove('show');pinVal='';updateDots();}
+function chkPc(){
+  if(pinVal===getPC()){adminOn=true;closePc();showAdmin();}
+  else{
+    document.getElementById('pc-err').style.display='block';
+    for(let i=0;i<6;i++){const d=document.getElementById('pd-'+i);if(d)d.classList.add('err');}
+    setTimeout(()=>{pinVal='';updateDots();document.getElementById('pc-err').style.display='none';},700);
+  }
+}
+function togPc(){}
+function showAdmin(){document.getElementById('admin-section').classList.add('show');renderAdmin();document.getElementById('admin-section').scrollIntoView({behavior:'smooth'});}
+function lockAdmin(){adminOn=false;document.getElementById('admin-section').classList.remove('show');}
+function togCpVis(iid,bid){const inp=document.getElementById(iid),btn=document.getElementById(bid);const s=inp.type==='password';inp.type=s?'text':'password';btn.textContent=s?'HIDE':'SHOW';}
+function changePasscode(){
+  const old=document.getElementById('cp-old').value,nw=document.getElementById('cp-new').value,con=document.getElementById('cp-con').value,err=document.getElementById('cp-err');
+  err.style.display='none';
+  if(old!==getPC()){err.textContent='Current passcode is incorrect';err.style.display='block';return;}
+  if(!nw){err.textContent='New passcode cannot be empty';err.style.display='block';return;}
+  if(nw!==con){err.textContent='New passcodes do not match';err.style.display='block';return;}
+  setPC(nw);['cp-old','cp-new','cp-con'].forEach(id=>document.getElementById(id).value='');showToast('Passcode changed!');
+}
+
+let itemsDirty=false;
+function setDirty(){itemsDirty=true;const btn=document.getElementById('apply-btn');if(btn){btn.textContent='⚠ Apply Changes';btn.style.background='linear-gradient(135deg,#f0a500,#e0162f)';}}
+function switchTab(t){
+  if(t!=='items'&&itemsDirty){if(!confirm('You have unapplied item changes. Leave without applying?'))return;}
+  ['ann','items','del','cust','facts'].forEach(k=>{
+    const body=document.getElementById('tab-'+k+'-body');
+    const tab=document.getElementById('tab-'+k);
+    if(body)body.style.display=k===t?'block':'none';
+    if(tab)tab.classList.toggle('active',k===t);
+  });
+  if(t==='del')renderDeliveries();
+  if(t==='facts')renderFactsList();
+  if(t==='cust')renderCustomerList();
+}
+
+function renderAdmin(){
+  document.getElementById('admin-items').innerHTML=prods.length?prods.map(p=>`
+    <div class="aitem">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <input class="ainp" type="text" value="${p.emoji}" id="ae-${p.id}" style="width:46px;text-align:center;font-size:1.3rem;flex-shrink:0;" oninput="setDirty()">
+        <input class="ainp" type="text" value="${p.name}" id="an-${p.id}" placeholder="Item name" style="flex:1;" oninput="setDirty()">
+        <button class="adel" onclick="delItem(${p.id})" style="flex-shrink:0;">✕ Remove</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <div><div style="font-size:10px;color:var(--mt);letter-spacing:1px;margin-bottom:3px;">SUBTITLE</div><input class="ainp" type="text" value="${p.sub}" id="as-${p.id}" placeholder="Short description" style="width:100%;"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div><div style="font-size:10px;color:var(--mt);letter-spacing:1px;margin-bottom:3px;">PRICE ₹</div><input class="ainp" type="number" value="${p.price}" id="ap-${p.id}" style="width:100%;"></div>
+          <div><div style="font-size:10px;color:var(--mt);letter-spacing:1px;margin-bottom:3px;">MAX QTY</div><input class="ainp" type="number" value="${p.maxQty||5}" id="amq-${p.id}" min="1" max="99" style="width:100%;"></div>
+        </div>
+      </div>
+      <div style="margin-bottom:8px;"><div style="font-size:10px;color:var(--mt);letter-spacing:1px;margin-bottom:4px;">IMAGE URL (optional)</div><input class="ainp" type="url" value="${p.img||''}" id="aimg-${p.id}" placeholder="https://..." style="width:100%;font-size:12px;"></div>
+      <div style="background:var(--bg3);border:1px solid var(--bdr);border-radius:10px;padding:.7rem .9rem;display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+        <div><div style="font-size:10px;color:var(--mt);letter-spacing:1px;margin-bottom:5px;">COLOURS</div><div style="display:flex;gap:8px;flex-wrap:wrap;">${['Red','Blue','Purple','Clear'].map(c=>`<label class="achk"><input type="checkbox" id="ac-${p.id}-${c}" ${(p.colors||[]).includes(c)?'checked':''}> ${c}</label>`).join('')}</div></div>
+        <div style="width:1px;background:var(--bdr);align-self:stretch;"></div>
+        <div><div style="font-size:10px;color:var(--mt);letter-spacing:1px;margin-bottom:5px;">OPTIONS</div><div style="display:flex;gap:10px;flex-wrap:wrap;"><label class="achk" style="color:var(--tx);"><input type="checkbox" id="asz-${p.id}" ${p.hasSz?'checked':''}> Big &amp; Small</label><label class="achk" style="color:var(--tx);"><input type="checkbox" id="atx-${p.id}" ${p.hasText?'checked':''}> Letter/Number</label></div></div>
+        <div style="width:1px;background:var(--bdr);align-self:stretch;"></div>
+        <div><div style="font-size:10px;color:var(--mt);letter-spacing:1px;margin-bottom:5px;">BADGE</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <label class="achk" style="color:var(--blue3);font-weight:700;">
+              <input type="checkbox" id="abadge-${p.id}" ${isNewActive(p)?'checked':''} onchange="toggleNewBadge(${p.id},this)">
+              <span style="background:rgba(29,90,232,.9);color:#fff;font-size:9px;padding:2px 8px;border-radius:100px;letter-spacing:1px;font-weight:700;">NEW</span>
+            </label>
+            ${isNewActive(p)?`<span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--mt);letter-spacing:1px;">${daysLeft(p.badgeExpiry)}d left</span>`:''}
+          </div>
+        </div>
+      </div>
+    </div>`).join(''):'<div style="color:var(--mt);font-size:13px;margin-bottom:8px;">No items yet. Add one below.</div>';
+}
+
+function isNewActive(p){return p.badge==='new'&&p.badgeExpiry&&Date.now()<p.badgeExpiry;}
+function daysLeft(exp){return Math.max(0,Math.ceil((exp-Date.now())/(1000*60*60*24)));}
+function toggleNewBadge(id,cb){
+  const p=prods.find(x=>x.id===id);if(!p)return;
+  if(cb.checked){
+    p.badge='new';p.badgeExpiry=Date.now()+7*24*60*60*1000;
+  } else {
+    p.badge='';p.badgeExpiry=null;
+  }
+  renderAdmin();renderProds();
+}
+function expireOldBadges(){prods.forEach(p=>{if(p.badge==='new'&&p.badgeExpiry&&Date.now()>=p.badgeExpiry){p.badge='';p.badgeExpiry=null;}});renderProds();}
+// check every hour
+setInterval(expireOldBadges,60*60*1000);
+function delItem(id){prods=prods.filter(p=>p.id!==id);renderAdmin();renderProds();showToast('Item removed');}
+function addItem(){prods.push({id:Date.now(),name:'New Item',sub:'Description',price:500,emoji:'⭐',badge:'',badgeExpiry:null,hasSz:false,hasText:false,maxQty:5,img:'',colors:['Red','Blue','Purple']});renderAdmin();renderProds();showToast('Item added');}
+function applyChanges(){
+  prods=prods.map(p=>({...p,
+    emoji:document.getElementById('ae-'+p.id)?.value||p.emoji,
+    name:document.getElementById('an-'+p.id)?.value||p.name,
+    sub:document.getElementById('as-'+p.id)?.value||p.sub,
+    price:parseInt(document.getElementById('ap-'+p.id)?.value)||p.price,
+    maxQty:parseInt(document.getElementById('amq-'+p.id)?.value)||5,
+    img:document.getElementById('aimg-'+p.id)?.value.trim()||'',
+    hasSz:document.getElementById('asz-'+p.id)?.checked||false,
+    hasText:document.getElementById('atx-'+p.id)?.checked||false,
+    badge:document.getElementById('abadge-'+p.id)?.checked?'new':'',
+    badgeExpiry:document.getElementById('abadge-'+p.id)?.checked?(p.badgeExpiry||Date.now()+7*24*60*60*1000):null,
+    colors:['Red','Blue','Purple','Clear'].filter(c=>document.getElementById('ac-'+p.id+'-'+c)?.checked)||['Red'],
+  }));
+  renderProds();
+  itemsDirty=false;
+  const btn=document.getElementById('apply-btn');
+  if(btn){btn.textContent='Apply Changes';btn.style.background='';}
+  showToast('Changes applied!');
+}
+
+let readyOrders=[];
+
+function renderDeliveries(){
+  const pb=document.getElementById('del-pending'),pr=document.getElementById('del-ready'),ps=document.getElementById('del-past'),bdg=document.getElementById('del-badge'),rbdg=document.getElementById('ready-badge');
+  const total=pendingOrders.length+readyOrders.length;
+  if(total){bdg.style.display='inline';bdg.textContent=total;}else bdg.style.display='none';
+  if(readyOrders.length){rbdg.style.display='inline';rbdg.textContent=readyOrders.length;}else rbdg.style.display='none';
+  // summary bar
+  const allActive=[...pendingOrders,...readyOrders];
+  const todayRev=allActive.reduce((s,o)=>s+o.total,0);
+  const delivRev=pastOrders.reduce((s,o)=>s+o.total,0);
+  const ds=document.getElementById('del-summary');
+  if(ds)ds.innerHTML=[
+    {label:'Pending',val:pendingOrders.length,color:'var(--red2)'},
+    {label:'Ready',val:readyOrders.length,color:'#f0a500'},
+    {label:'Delivered',val:pastOrders.length,color:'var(--blue3)'},
+    {label:'Active ₹',val:todayRev,color:'var(--tx)'},
+    {label:'Delivered ₹',val:delivRev,color:'var(--blue3)'},
+  ].map(s=>`<div style="background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:.5rem .9rem;flex:1;min-width:80px;text-align:center;"><div style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:${s.color};line-height:1;">${s.val}</div><div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--mt);letter-spacing:1.5px;margin-top:2px;">${s.label}</div></div>`).join('');
+
+  pb.innerHTML=pendingOrders.length?pendingOrders.map((o,i)=>`
+    <div class="dcard">
+      <div class="dinfo">
+        <div class="dname">${o.name} · ${o.flat}</div>
+        <div class="ddet">📞 ${o.phone}${o.notes?' · 💬 '+o.notes:''}</div>
+        <div class="ddet">🕐 ${o.delivTime}</div>
+        <div class="ddet">${o.items}</div>
+        <div class="dprice">&#8377;${o.total}</div>
+        <div class="dtime">${o.time}</div>
+        <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:#f0a500;letter-spacing:1px;">
+            <input type="checkbox" style="accent-color:#f0a500;width:15px;height:15px;" onchange="markReady(${i},this)"> Mark as Ready
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--mt);letter-spacing:1px;opacity:.4;" id="del-lbl-p-${i}">
+            <input type="checkbox" disabled style="accent-color:var(--blue2);width:15px;height:15px;" id="del-chk-p-${i}"> Mark as Delivered
+          </label>
+        </div>
+      </div>
+    </div>`).join(''):`<div style="text-align:center;padding:2rem 1rem;"><div style="font-size:2.5rem;margin-bottom:.8rem;">✦</div><div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:3px;color:var(--blue3);margin-bottom:.4rem;">You Are Free</div><div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--mt);letter-spacing:2px;">— no deliveries pending —</div></div>`;
+
+  pr.innerHTML=readyOrders.length?readyOrders.map((o,i)=>`
+    <div class="dcard" style="border-color:rgba(240,165,0,.3);background:rgba(240,165,0,.04);">
+      <div class="dinfo">
+        <div class="dname" style="color:#f0a500;">🟡 ${o.name} · ${o.flat}</div>
+        <div class="ddet">📞 ${o.phone}</div>
+        <div class="ddet">🕐 ${o.delivTime}</div>
+        <div class="ddet">${o.items}</div>
+        <div class="dprice">&#8377;${o.total}</div>
+        <div style="margin-top:8px;">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--blue3);letter-spacing:1px;">
+            <input type="checkbox" style="accent-color:var(--blue2);width:15px;height:15px;" onchange="markDelivered(${i},this)"> Mark as Delivered
+          </label>
+        </div>
+      </div>
+    </div>`).join(''):'<div style="color:var(--mt);font-size:13px;letter-spacing:1px;padding:.5rem 0;">Nothing ready yet</div>';
+
+  ps.innerHTML=pastOrders.length?pastOrders.map((o,i)=>`<div class="dcard past"><div class="dinfo"><div class="dname" style="text-decoration:line-through;">${o.name} · ${o.flat}</div><div class="ddet">${o.items}</div><div class="dprice">&#8377;${o.total}</div><div class="dtime">✓ Delivered · ${o.time}</div><button onclick="undoDelivered(${i})" style="margin-top:6px;background:transparent;border:1px solid var(--bdr);color:var(--mt);font-size:10px;font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:1px;padding:3px 10px;border-radius:100px;cursor:pointer;">↩ Undo</button></div></div>`).join(''):'<div style="color:var(--mt);font-size:13px;letter-spacing:1px;">No past deliveries</div>';
+}
+
+function markReady(i,cb){
+  if(!cb.checked)return;
+  const o=pendingOrders.splice(i,1)[0];
+  o.status='ready';
+  readyOrders.push(o);
+  syncOrderStatus(o.orderId,'ready');
+  showToast('Order marked as ready 🟡');
+  renderDeliveries();
+}
+
+function markDelivered(i,cb){
+  if(!cb.checked)return;
+  const o=readyOrders.splice(i,1)[0];
+  o.status='delivered';
+  pastOrders.unshift(o);
+  syncOrderStatus(o.orderId,'delivered');
+  showToast('Delivered! ✓');
+  renderDeliveries();
+}
+
+function undoDelivered(i){const o=pastOrders.splice(i,1)[0];readyOrders.unshift(o);showToast('Moved back to Ready');renderDeliveries();}
+function clearPast(){pastOrders=[];renderDeliveries();}
+function updateDelBadge(){const bdg=document.getElementById('del-badge');const t=pendingOrders.length+readyOrders.length;if(t){bdg.style.display='inline';bdg.textContent=t;}else bdg.style.display='none';}
+
+function toggleShop(){shopOpen=!shopOpen;document.getElementById('shop-sw').classList.toggle('on',shopOpen);document.getElementById('shop-status-label').textContent=shopOpen?'SHOP: OPEN':'SHOP: CLOSED';document.getElementById('shop-status-label').style.color=shopOpen?'var(--tx)':'var(--red2)';document.getElementById('shop-closed-bar').style.display=shopOpen?'none':'block';document.getElementById('opens-at-wrap').style.display=shopOpen?'none':'block';}
+function setOpensAt(){const val=document.getElementById('opens-at-inp').value.trim();document.getElementById('opens-at-display').textContent=val?'Opens: '+val:'— check back soon —';showToast('Saved!');}
+function setAnn(){const m=document.getElementById('ann-inp').value.trim();if(!m){showToast('Type a message first!');return;}document.getElementById('ann-text').innerHTML='<span style="color:var(--red2);">✦</span> '+m+' <span style="color:var(--red2);">✦</span>';document.getElementById('ann-bar').style.display='block';showToast('Announcement is live!');}
+function clearAnn(){document.getElementById('ann-text').innerHTML='<span style="font-style:italic;color:var(--mt);letter-spacing:3px;font-size:11px;">— the lab is quiet. no transmissions at this time —</span>';document.getElementById('ann-bar').style.display='block';document.getElementById('ann-inp').value='';showToast('Announcement cleared');}
+
+let chargeLevel=0,chargeTimer=null,chargeInterval=null;
+const MAX_CHARGE=100,CHARGE_RATE=1000; // 1% per second in light mode, max 100s
+
+function toggleMode(){
+  const b=document.body,btn=document.getElementById('mode-btn');
+  const goingLight=!b.classList.contains('light');
+  b.classList.toggle('light',goingLight);
+  btn.textContent=goingLight?'🌑':'🌙';
+  if(goingLight){stopDecay();startCharging();const t=document.getElementById('main-title');if(t)t.style.filter='none';}else{stopCharging();applyGlow();startDecay();}
+}
+
+function startCharging(){
+  chargeInterval=setInterval(()=>{
+    chargeLevel=Math.min(MAX_CHARGE,chargeLevel+1);
+    if(chargeLevel>=MAX_CHARGE)clearInterval(chargeInterval);
+  },CHARGE_RATE);
+}
+
+function stopCharging(){
+  if(chargeInterval)clearInterval(chargeInterval);
+  const title=document.getElementById('main-title');
+  if(title)title.classList.remove('charging');
+}
+
+function applyGlow(){
+  const title=document.getElementById('main-title');
+  if(!title)return;
+  const c=chargeLevel;
+  if(c<=0){title.style.filter='none';return;}
+  const intensity=c/100;
+  const spread=Math.round(8+intensity*40);
+  const bright=(1+intensity*0.8).toFixed(2);
+  const alpha=(0.4+intensity*0.6).toFixed(2);
+  title.style.filter=`brightness(${bright}) drop-shadow(0 0 ${Math.round(spread/3)}px rgba(255,230,80,${alpha}))`;
+}
+
+let decayInterval=null;
+function startDecay(){
+  if(decayInterval)clearInterval(decayInterval);
+  decayInterval=setInterval(()=>{
+    if(chargeLevel<=0){clearInterval(decayInterval);applyGlow();return;}
+    chargeLevel=Math.max(0,chargeLevel-1);
+    applyGlow();
+  },2000);
+}
+function stopDecay(){if(decayInterval)clearInterval(decayInterval);}
+
+// COUNTDOWN
+let cdTarget=null,cdInterval=null,cdActive=false;
+function togCountdown(){
+  cdActive=!cdActive;
+  document.getElementById('cd-sw').classList.toggle('on',cdActive);
+  document.getElementById('cd-inputs').style.display=cdActive?'block':'none';
+  if(!cdActive){stopCountdown();}
+}
+function startCountdown(){
+  const d=parseInt(document.getElementById('cd-inp-d').value)||0;
+  const h=parseInt(document.getElementById('cd-inp-h').value)||0;
+  const m=parseInt(document.getElementById('cd-inp-m').value)||0;
+  const s=parseInt(document.getElementById('cd-inp-s').value)||0;
+  const totalMs=(d*86400+h*3600+m*60+s)*1000;
+  if(totalMs<=0){showToast('Enter a valid countdown time!');return;}
+  cdTarget=Date.now()+totalMs;
+  document.getElementById('countdown-bar').style.display='block';
+  if(cdInterval)clearInterval(cdInterval);
+  cdInterval=setInterval(tickCountdown,1000);
+  tickCountdown();
+  showToast('Countdown started!');
+}
+function tickCountdown(){
+  if(!cdTarget){return;}
+  const remaining=cdTarget-Date.now();
+  if(remaining<=0){
+    document.getElementById('cd-d').textContent='00';
+    document.getElementById('cd-h').textContent='00';
+    document.getElementById('cd-m').textContent='00';
+    document.getElementById('cd-s').textContent='00';
+    clearInterval(cdInterval);
+    document.getElementById('countdown-bar').style.display='none';
+    showToast('✦ New Drop is LIVE!');
+    fireConfetti();
+    return;
+  }
+  const td=Math.floor(remaining/86400000);
+  const th=Math.floor((remaining%86400000)/3600000);
+  const tm=Math.floor((remaining%3600000)/60000);
+  const ts=Math.floor((remaining%60000)/1000);
+  document.getElementById('cd-d').textContent=String(td).padStart(2,'0');
+  document.getElementById('cd-h').textContent=String(th).padStart(2,'0');
+  document.getElementById('cd-m').textContent=String(tm).padStart(2,'0');
+  document.getElementById('cd-s').textContent=String(ts).padStart(2,'0');
+}
+function stopCountdown(){
+  cdTarget=null;
+  if(cdInterval){clearInterval(cdInterval);cdInterval=null;}
+  document.getElementById('countdown-bar').style.display='none';
+  showToast('Countdown stopped');
+}
+
+function fireConfetti(){
+  // --- OVERLAY first (z:10000) ---
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(4,2,10,.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);animation:overlayIn .5s ease forwards;';
+  overlay.innerHTML=`
+    <div style="text-align:center;animation:dropPop .5s cubic-bezier(.2,1.6,.4,1) forwards;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:6rem;letter-spacing:20px;background:linear-gradient(135deg,#e0162f,#fff 45%,#4d8fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;">NEW DROP</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:.85rem;letter-spacing:8px;color:rgba(255,255,255,.6);margin-top:.8rem;text-transform:uppercase;">is live ✦</div>
+      <div style="width:60px;height:2px;background:linear-gradient(90deg,#e0162f,#4d8fff);margin:1.5rem auto 0;border-radius:2px;"></div>
+    </div>
+  `;
+  const style=document.createElement('style');
+  style.textContent='@keyframes dropPop{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}@keyframes overlayIn{from{opacity:0}to{opacity:1}}@keyframes overlayOut{from{opacity:1}to{opacity:0}}';
+  document.head.appendChild(style);
+  document.body.appendChild(overlay);
+  setTimeout(()=>{
+    overlay.style.animation='overlayOut .6s ease forwards';
+    setTimeout(()=>overlay.remove(),600);
+  },5000);
+
+  // --- CONFETTI above overlay (z:10001) ---
+  const cv=document.createElement('canvas');
+  cv.style.cssText='position:fixed;inset:0;width:100%;height:100%;z-index:10001;pointer-events:none;';
+  document.body.appendChild(cv);
+  const ctx=cv.getContext('2d');
+  cv.width=window.innerWidth;
+  cv.height=window.innerHeight;
+
+  const palette=['#e0162f','#4d8fff','#a855f7','#f0a500','#ffffff','#ff6ec7','#00e5ff','#39ff14','#ff4500','#ffe94d'];
+
+  // burst particles from top-center + random top positions
+  function makeParticle(burst){
+    const side=Math.random()>0.5?1:-1;
+    return {
+      x: burst ? cv.width/2 + (Math.random()-0.5)*120 : Math.random()*cv.width,
+      y: burst ? -10 : -Math.random()*60,
+      w: Math.random()*16+7,
+      h: Math.random()*8+4,
+      color: palette[Math.floor(Math.random()*palette.length)],
+      rot: Math.random()*360,
+      rotSpeed: (Math.random()-0.5)*10,
+      vx: burst ? (Math.random()-0.5)*18 : (Math.random()-0.5)*4,
+      vy: burst ? Math.random()*-14-4 : Math.random()*3+1,
+      gravity: 0.35,
+      opacity: 1,
+      shape: ['rect','circle','strip'][Math.floor(Math.random()*3)],
+    };
+  }
+
+  // initial rain particles
+  const particles=Array.from({length:200},()=>makeParticle(false));
+  // burst from center
+  for(let i=0;i<80;i++) particles.push(makeParticle(true));
+
+  const start=Date.now();
+  const duration=10000;
+  let raf;
+
+  function draw(){
+    ctx.clearRect(0,0,cv.width,cv.height);
+    const elapsed=Date.now()-start;
+
+    particles.forEach(p=>{
+      p.x+=p.vx;
+      p.y+=p.vy;
+      p.vy+=p.gravity;
+      p.rot+=p.rotSpeed;
+      if(elapsed>7500) p.opacity=Math.max(0,1-(elapsed-7500)/2500);
+      if(p.x<-30) p.x=cv.width+30;
+      if(p.x>cv.width+30) p.x=-30;
+
+      ctx.save();
+      ctx.globalAlpha=p.opacity;
+      ctx.translate(p.x,p.y);
+      ctx.rotate(p.rot*Math.PI/180);
+      ctx.fillStyle=p.color;
+      ctx.shadowColor=p.color;
+      ctx.shadowBlur=6;
+      if(p.shape==='circle'){
+        ctx.beginPath();ctx.arc(0,0,p.w/2,0,Math.PI*2);ctx.fill();
+      } else if(p.shape==='strip'){
+        ctx.fillRect(-p.w/2,-p.h/4,p.w,p.h/2);
+      } else {
+        ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+      }
+      ctx.restore();
+    });
+
+    if(elapsed<duration){
+      raf=requestAnimationFrame(draw);
+    } else {
+      cancelAnimationFrame(raf);
+      cv.remove();
+    }
+  }
+  draw();
+}
+
+// ── CUSTOMER SYSTEM ──────────────────────────────────────
+let customers={}; // keyed by "name|block|flat|phone4"
+let currentUser=null; // {name,block,flat,phone4,key}
+
+function custKey(name,block,flat,phone4){
+  return `${name.trim().toLowerCase()}|${block.toUpperCase()}|${flat}|${phone4}`;
+}
+
+function openLogin(){
+  document.getElementById('li-name').value='';
+  document.getElementById('li-block').value='';
+  document.getElementById('li-flat').value='';
+  document.getElementById('li-phone').value='';
+  document.getElementById('li-err').style.display='none';
+  document.getElementById('login-modal').classList.add('show');
+}
+function closeLogin(){document.getElementById('login-modal').classList.remove('show');}
+
+function doLogin(){
+  const name=document.getElementById('li-name').value.trim();
+  const block=document.getElementById('li-block').value.trim().toUpperCase();
+  const flat=document.getElementById('li-flat').value.trim();
+  const phone4=document.getElementById('li-phone').value.trim();
+  const err=document.getElementById('li-err');
+  if(!name||!block||!flat||!phone4){err.textContent='Please fill in all fields.';err.style.display='block';return;}
+  const key=custKey(name,block,flat,phone4);
+  // register if new
+  if(!customers[key]){
+    customers[key]={name,block,flat,phone4,key,joinDate:new Date().toLocaleDateString('en-IN'),orders:[]};
+  }
+  currentUser={...customers[key]};
+  closeLogin();
+  updateLoginBtn();
+  // auto-fill order form
+  document.getElementById('f-name').value=name;
+  document.getElementById('f-block').value=block;
+  document.getElementById('f-flatno').value=flat;
+  showToast('Welcome back, '+name+' 👋');
+}
+
+function logoutUser(){
+  currentUser=null;
+  updateLoginBtn();
+  showToast('Logged out');
+}
+
+function updateLoginBtn(){
+  const btn=document.getElementById('login-btn');
+  if(currentUser){
+    btn.textContent=currentUser.name.split(' ')[0];
+    btn.onclick=()=>openHist();
+    btn.style.color='var(--blue3)';
+    btn.style.borderColor='rgba(64,128,240,.35)';
+  } else {
+    btn.textContent='Login';
+    btn.onclick=openLogin;
+    btn.style.color='';
+    btn.style.borderColor='';
+  }
+}
+
+// attach order to customer when placed
+function attachOrderToCustomer(orderData){
+  if(!currentUser)return;
+  const key=currentUser.key;
+  if(!customers[key])return;
+  customers[key].orders.push({
+    ...orderData,
+    status:'pending',
+    orderId:'GL-'+Math.floor(1000+Math.random()*9000),
+  });
+}
+
+// ORDER HISTORY MODAL
+function openHist(){
+  if(!currentUser){openLogin();return;}
+  const key=currentUser.key;
+  const cust=customers[key];
+  document.getElementById('hist-user').textContent=
+    (cust?.name||currentUser.name)+' · Block '+currentUser.block+', Flat '+currentUser.flat;
+  renderHistList(cust);
+  document.getElementById('hist-modal').classList.add('show');
+}
+function closeHist(){document.getElementById('hist-modal').classList.remove('show');}
+
+function renderHistList(cust){
+  const el=document.getElementById('hist-list');
+  const orders=cust?.orders||[];
+  if(!orders.length){
+    el.innerHTML='<div style="text-align:center;padding:3rem 1.5rem;color:var(--mt);font-family:\'Share Tech Mono\',monospace;font-size:11px;letter-spacing:2px;">No orders yet ✦</div>';
+    return;
+  }
+  el.innerHTML=[...orders].reverse().map(o=>{
+    const stMap={pending:'status-pending',ready:'status-ready',delivered:'status-delivered'};
+    const stLabel={pending:'Pending',ready:'Ready',delivered:'Delivered'};
+    return `<div class="hcard">
+      <div class="hcard-title">${o.orderId||'Order'} · ${o.time}</div>
+      <div class="hcard-items">${o.items}</div>
+      <div class="hcard-meta">
+        <span class="hcard-price">&#8377;${o.total}</span>
+        <span class="hcard-status ${stMap[o.status]||'status-pending'}">${stLabel[o.status]||'Pending'}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// update order status in customer records when admin marks ready/delivered
+function syncOrderStatus(orderId,status){
+  Object.values(customers).forEach(c=>{
+    const o=c.orders.find(x=>x.orderId===orderId);
+    if(o)o.status=status;
+  });
+}
+
+// CUSTOMERS ADMIN TAB
+function renderCustomerList(){
+  const search=(document.getElementById('cust-search')?.value||'').toLowerCase();
+  const all=Object.values(customers);
+  const filtered=search?all.filter(c=>
+    c.name.toLowerCase().includes(search)||
+    (c.block+c.flat).toLowerCase().includes(search)
+  ):all;
+
+  // summary
+  const cs=document.getElementById('cust-summary');
+  if(cs)cs.innerHTML=[
+    {label:'Total',val:all.length,color:'var(--tx)'},
+    {label:'Orders',val:all.reduce((s,c)=>s+c.orders.length,0),color:'var(--blue3)'},
+    {label:'Revenue ₹',val:all.reduce((s,c)=>s+c.orders.reduce((a,o)=>a+o.total,0),0),color:'var(--red2)'},
+  ].map(s=>`<div style="background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:.5rem .9rem;flex:1;min-width:80px;text-align:center;"><div style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:${s.color};line-height:1;">${s.val}</div><div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--mt);letter-spacing:1.5px;margin-top:2px;">${s.label}</div></div>`).join('');
+
+  const el=document.getElementById('cust-list');
+  if(!el)return;
+  if(!filtered.length){el.innerHTML='<div style="color:var(--mt);font-size:13px;text-align:center;padding:2rem;letter-spacing:1px;">No customers yet</div>';return;}
+  el.innerHTML=filtered.map(c=>{
+    const orderCount=c.orders.length;
+    const spent=c.orders.reduce((s,o)=>s+o.total,0);
+    const last=orderCount?c.orders[orderCount-1].time:'—';
+    return `<div class="cust-row">
+      <div>
+        <div class="cust-name">${c.name}</div>
+        <div class="cust-meta">Block ${c.block}, Flat ${c.flat} · Joined ${c.joinDate}</div>
+        <div class="cust-meta" style="margin-top:2px;">Last order: ${last}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--red2);font-weight:700;">₹${spent}</div>
+        <div style="font-size:10px;color:var(--mt);letter-spacing:1px;">${orderCount} order${orderCount!==1?'s':''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function exportCustomers(){
+  const all=Object.values(customers);
+  if(!all.length){showToast('No customers to export');return;}
+  const rows=['Name,Block,Flat,Orders,Spent,Joined'];
+  all.forEach(c=>{
+    const spent=c.orders.reduce((s,o)=>s+o.total,0);
+    rows.push(`"${c.name}",${c.block},${c.flat},${c.orders.length},${spent},"${c.joinDate}"`);
+  });
+  const blob=new Blob([rows.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='glowlab-customers.csv';a.click();
+  showToast('Exported!');
+}
+
+// SHARE LINK
+function shareLink(){
+  const url=window.location.href;
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(url).then(()=>showToast('Link copied! Share it 🔗'));
+  } else {
+    const ta=document.createElement('textarea');ta.value=url;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();showToast('Link copied! Share it 🔗');
+  }
+}
+
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+
+const facts_compat=null; // removed — facts now declared at top
+let factIdx=0,factInterval=null;
+function rotateFact(){const el=document.getElementById('fact-text');el.style.opacity='0';el.style.transform='translateY(6px)';setTimeout(()=>{if(facts.length){el.textContent=facts[factIdx];factIdx=(factIdx+1)%facts.length;}el.style.opacity='1';el.style.transform='translateY(0)';},500);}
+function startFactRotation(speed){if(factInterval)clearInterval(factInterval);rotateFact();factInterval=setInterval(rotateFact,(speed||4)*1000);}
+function applyFactSpeed(){const s=parseInt(document.getElementById('fact-speed').value)||4;startFactRotation(s);showToast('Speed updated!');}
+function renderFactsList(){const el=document.getElementById('facts-list');if(!el)return;el.innerHTML=facts.length?facts.map((f,i)=>`<div class="fcard"><input class="ainp" value="${f.replace(/"/g,'&quot;')}" id="fi-${i}" style="flex:1;font-size:12px;padding:4px 8px;"><button class="apbtn" style="margin-top:0;padding:4px 10px;font-size:.75rem;" onclick="saveFact(${i})">Save</button><button class="adel" onclick="delFact(${i})">Del</button></div>`).join(''):'<div style="color:var(--mt);font-size:13px;letter-spacing:1px;">No facts yet.</div>';}
+function shuffleFacts(){
+  for(let i=facts.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[facts[i],facts[j]]=[facts[j],facts[i]];}
+  factIdx=0;renderFactsList();showToast('Facts shuffled!');
+}
+function saveFact(i){const v=document.getElementById('fi-'+i)?.value.trim();if(v){facts[i]=v;showToast('Fact updated!');}}
+function delFact(i){facts.splice(i,1);if(factIdx>=facts.length)factIdx=0;renderFactsList();showToast('Fact removed');}
+function addFact(){const inp=document.getElementById('new-fact-inp'),v=inp.value.trim();if(!v){showToast('Type a fact first!');return;}facts.push('✦ '+v);inp.value='';renderFactsList();showToast('Fact added!');}
+
+startFactRotation(4);
+renderProds();
+document.getElementById('ann-text').innerHTML='<span style="font-style:italic;color:var(--mt);letter-spacing:3px;font-size:11px;">— the lab is quiet. no transmissions at this time —</span>';
+document.getElementById('ann-bar').style.display='block';
+</script>
+</body>
+</html>
