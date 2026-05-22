@@ -233,6 +233,7 @@ footer{text-align:center;padding:2rem 2.5rem;border-top:1px solid var(--bdr);fon
   <div class="nav-right">
     <button class="modetgl" onclick="toggleMode()" id="mode-btn" title="Toggle light/dark">🌙</button>
     <button class="nbtn" id="login-btn" onclick="openLogin()">Login</button>
+    <button class="nbtn" id="logout-btn" onclick="logoutUser()" title="Log out" style="display:none;color:var(--red2);border-color:rgba(176,18,40,.3);" onmouseover="this.style.background='rgba(176,18,40,.08)'" onmouseout="this.style.background='transparent'">↩ Logout</button>
     <button class="nbtn" onclick="shareLink()" title="Copy link">🔗</button>
     <button class="nbtn" onclick="openAdmin()">Admin</button>
     <button class="cbtn" onclick="toggleCart()">Cart <span id="cart-count">0</span></button>
@@ -1333,8 +1334,10 @@ function loadSession(){
       currentUser=JSON.parse(u);
       // block if banned
       if(currentUser&&isBanned(currentUser.block,currentUser.flat,currentUser.phone4)){
+        const u=currentUser;
         currentUser=null;
         try{localStorage.removeItem('gl_user');}catch(e){}
+        showBannedScreen(null);
         return;
       }
       // make sure they exist in customers object
@@ -1474,16 +1477,19 @@ function logoutUser(){
 
 function updateLoginBtn(){
   const btn=document.getElementById('login-btn');
+  const logoutBtn=document.getElementById('logout-btn');
   if(currentUser){
     btn.textContent=currentUser.name.split(' ')[0];
     btn.onclick=()=>openHist();
     btn.style.color='var(--blue3)';
     btn.style.borderColor='rgba(64,128,240,.35)';
+    if(logoutBtn)logoutBtn.style.display='inline-flex';
   } else {
     btn.textContent='Login';
     btn.onclick=openLogin;
     btn.style.color='';
     btn.style.borderColor='';
+    if(logoutBtn)logoutBtn.style.display='none';
   }
 }
 
@@ -1559,6 +1565,21 @@ function isBanned(block,flat,phone4){
   return bannedIds.has(block+'|'+flat+'|'+phone4);
 }
 
+function showBannedScreen(onOk){
+  const overlay=document.createElement('div');
+  overlay.id='banned-overlay';
+  overlay.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(3,1,8,.97);backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML=`
+    <div style="text-align:center;padding:2rem;max-width:340px;">
+      <div style="font-size:3.5rem;margin-bottom:1.2rem;">🚫</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:2.2rem;letter-spacing:8px;color:var(--red2);margin-bottom:.5rem;">You Are Banned</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--mt);letter-spacing:2px;line-height:1.8;margin-bottom:2rem;">Your account has been suspended.<br>Contact the admin for enquiries.</div>
+      <button onclick="document.getElementById('banned-overlay').remove();(window._banCallback&&window._banCallback());" style="background:linear-gradient(135deg,var(--red),var(--red2));border:none;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:5px;padding:13px 36px;border-radius:100px;cursor:pointer;box-shadow:0 6px 20px rgba(176,18,40,.4);">OK</button>
+    </div>`;
+  window._banCallback=onOk||null;
+  document.body.appendChild(overlay);
+}
+
 function kickCustomer(key){
   const c=customers[key];if(!c)return;
   // just force logout on this device — no permanent ban
@@ -1580,9 +1601,11 @@ function banCustomer(key){
   if(c) bannedIds.add(c.block+'|'+c.flat+'|'+c.phone4);
   saveBans();
   if(currentUser&&currentUser.key===key){
-    currentUser=null;
-    try{localStorage.removeItem('gl_user');}catch(e){}
-    updateLoginBtn();
+    showBannedScreen(()=>{
+      currentUser=null;
+      try{localStorage.removeItem('gl_user');}catch(e){}
+      updateLoginBtn();
+    });
   }
   renderCustomerList();
   showToast('Customer permanently banned 🚫');
