@@ -554,53 +554,58 @@ footer{text-align:center;padding:2rem 2.5rem;border-top:1px solid var(--bdr);fon
 <!-- LOGIN MODAL -->
 <div id="login-modal">
   <div class="login-box">
-    <!-- MODE TABS -->
     <div style="display:flex;border-bottom:1px solid var(--bdr);margin-bottom:1.2rem;">
       <button id="li-tab-in" onclick="setLoginMode('in')" style="flex:1;background:transparent;border:none;border-bottom:2px solid var(--blue2);color:var(--tx);font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;padding:.7rem;cursor:pointer;text-transform:uppercase;transition:all .2s;">Sign In</button>
       <button id="li-tab-new" onclick="setLoginMode('new')" style="flex:1;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--mt);font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;padding:.7rem;cursor:pointer;text-transform:uppercase;transition:all .2s;">New Account</button>
     </div>
 
-    <!-- SIGN IN MODE -->
+    <!-- SIGN IN -->
     <div id="li-signin-view">
       <div class="login-title" style="font-size:1.2rem;">Welcome Back</div>
-      <div class="login-sub">Enter your details to sign in</div>
+      <div class="login-sub">Sign in to your account</div>
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:1rem;">
-        <div>
-          <div class="flbl" style="margin-bottom:5px;text-align:left;">Block</div>
-          <input class="finp" id="li-block-in" placeholder="e.g. A" maxlength="1" oninput="this.value=this.value.replace(/[^a-zA-Z]/g,'').toUpperCase()">
-        </div>
-        <div>
-          <div class="flbl" style="margin-bottom:5px;text-align:left;">Flat No.</div>
-          <input class="finp" id="li-flat-in" placeholder="e.g. 304" maxlength="4" oninput="this.value=this.value.replace(/\D/g,'')">
-        </div>
-        <div>
-          <div class="flbl" style="margin-bottom:5px;text-align:left;">Phone (last 4 digits)</div>
-          <input class="finp" id="li-phone-in" placeholder="e.g. 9939" maxlength="4" oninput="this.value=this.value.replace(/\D/g,'')">
+        <div><div class="flbl" style="margin-bottom:5px;text-align:left;">Your Name</div>
+          <input class="finp" id="li-name-in" placeholder="e.g. Aryan" oninput="this.value=this.value.replace(/[^a-zA-Z\s]/g,'')"></div>
+        <div><div class="flbl" style="margin-bottom:5px;text-align:left;">Block</div>
+          <input class="finp" id="li-block-in" placeholder="e.g. A" maxlength="1" oninput="this.value=this.value.replace(/[^a-zA-Z]/g,'').toUpperCase()"></div>
+        <div><div class="flbl" style="margin-bottom:5px;text-align:left;">Flat No.</div>
+          <input class="finp" id="li-flat-in" placeholder="e.g. 304" maxlength="4" oninput="this.value=this.value.replace(/\D/g,'')"></div>
+        <div><div class="flbl" style="margin-bottom:5px;text-align:left;">Phone (last 4 digits)</div>
+          <input class="finp" id="li-phone-in" placeholder="e.g. 9939" maxlength="4" oninput="this.value=this.value.replace(/\D/g,'')"></div>
+        <div><div class="flbl" style="margin-bottom:5px;text-align:left;">Password</div>
+          <div style="position:relative;">
+            <input class="finp" type="password" id="li-pass-in" placeholder="Your password" style="padding-right:52px;">
+            <button onclick="togVis('li-pass-in','li-pass-in-btn')" id="li-pass-in-btn" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:transparent;border:none;color:var(--mt);cursor:pointer;font-size:11px;font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:1px;">SHOW</button>
+          </div>
         </div>
       </div>
       <button class="subbtn" style="letter-spacing:4px;padding:12px;" onclick="doSignIn()">Sign In</button>
     </div>
 
-    <!-- NEW ACCOUNT MODE -->
+    <!-- NEW ACCOUNT -->
     <div id="li-new-view" style="display:none;">
       <div class="login-title" style="font-size:1.2rem;">Create Account</div>
-      <div class="login-sub">Takes 10 seconds</div>
+      <div class="login-sub">Takes 30 seconds</div>
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:1rem;">
-        <div>
-          <div class="flbl" style="margin-bottom:5px;text-align:left;">Your Name</div>
-          <input class="finp" id="li-name" placeholder="e.g. Aryan" oninput="this.value=this.value.replace(/[^a-zA-Z\s]/g,'')">
+        <div><div class="flbl" style="margin-bottom:5px;text-align:left;">Your Name</div>
+          <input class="finp" id="li-name" placeholder="e.g. Aryan" oninput="this.value=this.value.replace(/[^a-zA-Z\s]/g,'')"></div>
+        <div><div class="flbl" style="margin-bottom:5px;text-align:left;">Block</div>
+          <input class="finp" id="li-block" placeholder="e.g. A" maxlength="1" oninput="this.value=this.value.replace(/[^a-zA-Z]/g,'').toUpperCase()"></div>
+        <div><div class="flbl" style="margin-bottom:5px;text-align:left;">Flat No.</div>
+          <input class="finp" id="li-flat" placeholder="e.g. 304" maxlength="4" oninput="this.value=this.value.replace(/\D/g,'')"></div>
+        <div><div class="flbl" style="margin-bottom:5px;text-align:left;">Phone (last 4 digits)</div>
+          <input class="finp" id="li-phone" placeholder="e.g. 9939" maxlength="4" oninput="this.value=this.value.replace(/\D/g,'')"></div>
+        <div><div class="flbl" style="margin-bottom:5px;text-align:left;">Password</div>
+          <div style="position:relative;">
+            <input class="finp" type="password" id="li-pass" placeholder="Choose a password" style="padding-right:52px;">
+            <button onclick="togVis('li-pass','li-pass-btn')" id="li-pass-btn" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:transparent;border:none;color:var(--mt);cursor:pointer;font-size:11px;font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:1px;">SHOW</button>
+          </div>
         </div>
-        <div>
-          <div class="flbl" style="margin-bottom:5px;text-align:left;">Block</div>
-          <input class="finp" id="li-block" placeholder="e.g. A" maxlength="1" oninput="this.value=this.value.replace(/[^a-zA-Z]/g,'').toUpperCase()">
-        </div>
-        <div>
-          <div class="flbl" style="margin-bottom:5px;text-align:left;">Flat No.</div>
-          <input class="finp" id="li-flat" placeholder="e.g. 304" maxlength="4" oninput="this.value=this.value.replace(/\D/g,'')">
-        </div>
-        <div>
-          <div class="flbl" style="margin-bottom:5px;text-align:left;">Phone (last 4 digits)</div>
-          <input class="finp" id="li-phone" placeholder="e.g. 9939" maxlength="4" oninput="this.value=this.value.replace(/\D/g,'')">
+        <div><div class="flbl" style="margin-bottom:5px;text-align:left;">Confirm Password</div>
+          <div style="position:relative;">
+            <input class="finp" type="password" id="li-pass2" placeholder="Repeat password" style="padding-right:52px;">
+            <button onclick="togVis('li-pass2','li-pass2-btn')" id="li-pass2-btn" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:transparent;border:none;color:var(--mt);cursor:pointer;font-size:11px;font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:1px;">SHOW</button>
+          </div>
         </div>
       </div>
       <button class="subbtn" style="letter-spacing:4px;padding:12px;" onclick="doLogin()">Create Account</button>
@@ -895,8 +900,7 @@ function updateDots(){
 }
 // ── ADMIN ROLES ───────────────────────────────────────────
 // Omar's key — matches custKey('Omar','E','503','9939') or ('Omar','E','503','8880')
-const OWNER_KEYS=['omar|E|503|9939','omar|E|503|8880'];
-const OWNER_KEY=OWNER_KEYS[0]; // primary
+const OWNER_KEYS=['omar|E|503']; // matches custKey('Omar','E','503',...)
 let promotedAdmins=new Set(JSON.parse(localStorage.getItem('gl_admins')||'[]'));
 
 function isOwner(){return currentUser&&OWNER_KEYS.includes(currentUser.key);}
@@ -1414,7 +1418,16 @@ let customers={}; // keyed by "name|block|flat|phone4"
 let currentUser=null; // {name,block,flat,phone4,key}
 
 function custKey(name,block,flat,phone4){
-  return `${name.trim().toLowerCase()}|${block.toUpperCase()}|${flat}|${phone4}`;
+  // key is name+block+flat — multiple people in same flat allowed
+  return `${name.trim().toLowerCase()}|${block.toUpperCase()}|${flat}`;
+}
+
+function togVis(inputId,btnId){
+  const inp=document.getElementById(inputId),btn=document.getElementById(btnId);
+  if(!inp||!btn)return;
+  const show=inp.type==='password';
+  inp.type=show?'text':'password';
+  btn.textContent=show?'HIDE':'SHOW';
 }
 
 function setLoginMode(mode){
@@ -1429,87 +1442,81 @@ function setLoginMode(mode){
 }
 
 function doSignIn(){
+  const name=document.getElementById('li-name-in').value.trim();
   const block=document.getElementById('li-block-in').value.trim().toUpperCase();
   const flat=document.getElementById('li-flat-in').value.trim();
   const phone4=document.getElementById('li-phone-in').value.trim();
+  const pass=document.getElementById('li-pass-in').value;
   const err=document.getElementById('li-err');
   err.style.display='none';
-  if(!block||!flat||!phone4){err.textContent='Please fill in all fields.';err.style.display='block';return;}
+  if(!name||!block||!flat||!phone4||!pass){err.textContent='Please fill in all fields.';err.style.display='block';return;}
   if(isBanned(block,flat,phone4)){err.textContent='Your account has been suspended. Contact the admin.';err.style.display='block';return;}
-  // look up in local customers first
-  const found=Object.values(customers).find(c=>c.block===block&&c.flat===flat&&c.phone4===phone4);
+  const key=custKey(name,block,flat,phone4);
+  // check local first
+  let found=customers[key];
   if(found){
-    currentUser={...found};
-    closeLogin();updateLoginBtn();
-    loadMyOrders().then(()=>{
-      saveSession();
-      document.getElementById('f-name').value=found.name;
-      document.getElementById('f-block').value=block;
-      document.getElementById('f-flatno').value=flat;
-      showToast('Welcome back, '+found.name+' 👋');
-    });
-    return;
+    if(found.password&&found.password!==pass){err.textContent='Incorrect password.';err.style.display='block';return;}
+    finishLogin(found);return;
   }
-  // not found locally — try fetching from sheet
+  // try sheet
   err.textContent='Looking you up...';err.style.display='block';
   gsFetch({type:'customers'}).then(rows=>{
-    const match=rows.find(r=>r.block===block&&r.flat===flat&&r.phone4===phone4);
-    if(!match){err.textContent='No account found. Try New Account or check your details.';return;}
-    const key=custKey(match.name,match.block,match.flat,match.phone4);
-    customers[key]={...match,key,orders:[]};
-    currentUser={...customers[key]};
-    closeLogin();updateLoginBtn();
-    loadMyOrders().then(()=>{
-      saveSession();
-      document.getElementById('f-name').value=match.name;
-      document.getElementById('f-block').value=block;
-      document.getElementById('f-flatno').value=flat;
-      showToast('Welcome back, '+match.name+' 👋');
-    });
+    const match=rows.find(r=>r.name&&r.name.toLowerCase()===name.toLowerCase()&&r.block===block&&r.flat===flat&&r.phone4===phone4);
+    if(!match){err.textContent='No account found. Check your details or create an account.';return;}
+    const k=custKey(match.name,match.block,match.flat,match.phone4);
+    // password stored locally only — if sheet match found but no local record, accept (first login on this device)
+    customers[k]={name:match.name,block:match.block,flat:match.flat,phone4:match.phone4,key:k,joinDate:match.joinDate,orders:[],password:pass};
+    finishLogin(customers[k]);
   });
 }
-
-function openLogin(){
-  document.getElementById('li-name').value='';
-  document.getElementById('li-block').value='';
-  document.getElementById('li-flat').value='';
-  document.getElementById('li-phone').value='';
-  document.getElementById('li-block-in').value='';
-  document.getElementById('li-flat-in').value='';
-  document.getElementById('li-phone-in').value='';
-  document.getElementById('li-err').style.display='none';
-  setLoginMode('in');
-  document.getElementById('login-modal').classList.add('show');
-}
-function closeLogin(){document.getElementById('login-modal').classList.remove('show');}
 
 function doLogin(){
   const name=document.getElementById('li-name').value.trim();
   const block=document.getElementById('li-block').value.trim().toUpperCase();
   const flat=document.getElementById('li-flat').value.trim();
   const phone4=document.getElementById('li-phone').value.trim();
+  const pass=document.getElementById('li-pass').value;
+  const pass2=document.getElementById('li-pass2').value;
   const err=document.getElementById('li-err');
-  if(!name||!block||!flat||!phone4){err.textContent='Please fill in all fields.';err.style.display='block';return;}
+  err.style.display='none';
+  if(!name||!block||!flat||!phone4||!pass||!pass2){err.textContent='Please fill in all fields.';err.style.display='block';return;}
+  if(pass!==pass2){err.textContent='Passwords do not match.';err.style.display='block';return;}
+  if(pass.length<4){err.textContent='Password must be at least 4 characters.';err.style.display='block';return;}
+  if(isBanned(block,flat,phone4)){err.textContent='This account has been suspended.';err.style.display='block';return;}
   const key=custKey(name,block,flat,phone4);
-  if(isBanned(block,flat,phone4)){err.textContent='Your account has been suspended. Contact the admin.';err.style.display='block';return;}
-  // register if new
-  if(!customers[key]){
-    customers[key]={name,block,flat,phone4,key,joinDate:new Date().toLocaleDateString('en-IN'),orders:[]};
-  }
-  currentUser={...customers[key]};
-  // register in sheet if new
+  if(customers[key]){err.textContent='An account with this name already exists in that flat. Try signing in.';err.style.display='block';return;}
+  // create account
+  customers[key]={name,block,flat,phone4,key,joinDate:new Date().toLocaleDateString('en-IN'),orders:[],password:pass};
   gsPost({type:'customer',name,block,flat,phone4,joinDate:customers[key].joinDate});
-  saveSession();
+  finishLogin(customers[key]);
+}
+
+function finishLogin(cust){
+  currentUser={...cust};
   closeLogin();
   updateLoginBtn();
-  // load their orders from sheet
   loadMyOrders().then(()=>{
-    document.getElementById('f-name').value=name;
-    document.getElementById('f-block').value=block;
-    document.getElementById('f-flatno').value=flat;
-    showToast('Welcome back, '+name+' 👋');
+    saveSession();
+    document.getElementById('f-name').value=cust.name;
+    document.getElementById('f-block').value=cust.block;
+    document.getElementById('f-flatno').value=cust.flat;
+    showToast('Welcome back, '+cust.name.split(' ')[0]+' 👋');
   });
 }
+
+function openLogin(){
+  ['li-name-in','li-block-in','li-flat-in','li-phone-in','li-pass-in',
+   'li-name','li-block','li-flat','li-phone','li-pass','li-pass2'].forEach(id=>{
+    const el=document.getElementById(id);if(el){el.value='';if(el.type==='text'&&id.includes('pass'))el.type='password';}
+  });
+  ['li-pass-in-btn','li-pass-btn','li-pass2-btn'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.textContent='SHOW';
+  });
+  document.getElementById('li-err').style.display='none';
+  setLoginMode('in');
+  document.getElementById('login-modal').classList.add('show');
+}
+function closeLogin(){document.getElementById('login-modal').classList.remove('show');}
 
 function logoutUser(){
   currentUser=null;
