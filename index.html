@@ -235,7 +235,7 @@ footer{text-align:center;padding:2rem 2.5rem;border-top:1px solid var(--bdr);fon
     <button class="nbtn" id="login-btn" onclick="openLogin()">Login</button>
     <button class="nbtn" id="logout-btn" onclick="logoutUser()" title="Log out" style="display:none;color:var(--red2);border-color:rgba(176,18,40,.3);" onmouseover="this.style.background='rgba(176,18,40,.08)'" onmouseout="this.style.background='transparent'">↩ Logout</button>
     <button class="nbtn" onclick="shareLink()" title="Copy link">🔗</button>
-    <button class="nbtn" onclick="openAdmin()">Admin</button>
+    <button class="nbtn" id="admin-nav-btn" onclick="openAdmin()" style="display:none;">Admin</button>
     <button class="cbtn" onclick="toggleCart()">Cart <span id="cart-count">0</span></button>
   </div>
 </nav>
@@ -1521,18 +1521,21 @@ function logoutUser(){
 function updateLoginBtn(){
   const btn=document.getElementById('login-btn');
   const logoutBtn=document.getElementById('logout-btn');
+  const adminBtn=document.getElementById('admin-nav-btn');
   if(currentUser){
     btn.textContent=currentUser.name.split(' ')[0];
     btn.onclick=()=>openHist();
     btn.style.color='var(--blue3)';
     btn.style.borderColor='rgba(64,128,240,.35)';
     if(logoutBtn)logoutBtn.style.display='inline-flex';
+    if(adminBtn)adminBtn.style.display=canAccessAdmin()?'inline-flex':'none';
   } else {
     btn.textContent='Login';
     btn.onclick=openLogin;
     btn.style.color='';
     btn.style.borderColor='';
     if(logoutBtn)logoutBtn.style.display='none';
+    if(adminBtn)adminBtn.style.display='none';
   }
 }
 
@@ -1623,6 +1626,27 @@ function showBannedScreen(onOk){
   document.body.appendChild(overlay);
 }
 
+function deleteAccount(key){
+  if(!confirm('Permanently delete this account and all their data? This cannot be undone.'))return;
+  const c=customers[key];
+  // log them out if currently logged in
+  if(currentUser&&currentUser.key===key){
+    currentUser=null;
+    try{localStorage.removeItem('gl_user');}catch(e){}
+    updateLoginBtn();
+    showBannedScreen(null);
+  }
+  // remove from all lists
+  bannedUsers.delete(key);
+  promotedAdmins.delete(key);
+  if(c){bannedIds.delete(c.block+'|'+c.flat+'|'+c.phone4);}
+  delete customers[key];
+  saveBans();
+  try{localStorage.setItem('gl_customers',JSON.stringify(customers));}catch(e){}
+  renderCustomerList();
+  showToast('Account deleted 🗑');
+}
+
 function kickCustomer(key){
   const c=customers[key];if(!c)return;
   // just force logout on this device — no permanent ban
@@ -1708,7 +1732,8 @@ function renderCustomerList(){
               :`<button onclick="promoteToAdmin('${c.key}')" style="background:rgba(64,128,240,.08);border:1px solid rgba(64,128,240,.25);color:var(--blue3);font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 9px;border-radius:100px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='var(--blue2)';this.style.color='#fff'" onmouseout="this.style.background='rgba(64,128,240,.08)';this.style.color='var(--blue3)'">+ Admin</button>`)
             :''}
             ${!isThisOwner?`<button onclick="kickCustomer('${c.key}')" title="Kick — forces logout only" style="background:rgba(240,165,0,.08);border:1px solid rgba(240,165,0,.3);color:#f0a500;font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 9px;border-radius:100px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='#f0a500';this.style.color='#000'" onmouseout="this.style.background='rgba(240,165,0,.08)';this.style.color='#f0a500'">👢 Kick</button>
-            <button onclick="banCustomer('${c.key}')" title="Ban — permanent block" style="background:rgba(176,18,40,.08);border:1px solid rgba(176,18,40,.25);color:var(--red2);font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 9px;border-radius:100px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='var(--red2)';this.style.color='#fff'" onmouseout="this.style.background='rgba(176,18,40,.08)';this.style.color='var(--red2)'">🚫 Ban</button>`:''}
+            <button onclick="banCustomer('${c.key}')" title="Ban — permanent block" style="background:rgba(176,18,40,.08);border:1px solid rgba(176,18,40,.25);color:var(--red2);font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 9px;border-radius:100px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='var(--red2)';this.style.color='#fff'" onmouseout="this.style.background='rgba(176,18,40,.08)';this.style.color='var(--red2)'">🚫 Ban</button>
+            <button onclick="deleteAccount('${c.key}')" title="Delete account permanently" style="background:rgba(100,20,20,.12);border:1px solid rgba(150,30,30,.35);color:#ff6b6b;font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 9px;border-radius:100px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='#c0392b';this.style.color='#fff'" onmouseout="this.style.background='rgba(100,20,20,.12)';this.style.color='#ff6b6b'">🗑 Delete</button>`:''}
           </div>
         </div>
         <div class="cust-meta">Block ${c.block}, Flat ${c.flat} · Joined ${c.joinDate}</div>
