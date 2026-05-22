@@ -1560,25 +1560,38 @@ function isBanned(block,flat,phone4){
 }
 
 function kickCustomer(key){
-  if(!confirm('Ban this customer? They will be permanently blocked from logging in.')) return;
+  const c=customers[key];if(!c)return;
+  // just force logout on this device — no permanent ban
+  if(currentUser&&currentUser.key===key){
+    currentUser=null;
+    try{localStorage.removeItem('gl_user');}catch(e){}
+    updateLoginBtn();
+  }
+  // mark as kicked (session only, not banned)
+  c._kicked=true;
+  renderCustomerList();
+  showToast(c.name+' has been kicked 👢');
+}
+
+function banCustomer(key){
+  if(!confirm('Permanently ban this customer? They cannot log back in unless unbanned.')) return;
   bannedUsers.add(key);
   const c=customers[key];
   if(c) bannedIds.add(c.block+'|'+c.flat+'|'+c.phone4);
   saveBans();
-  // if this customer is currently logged in on this device, log them out
   if(currentUser&&currentUser.key===key){
     currentUser=null;
     try{localStorage.removeItem('gl_user');}catch(e){}
     updateLoginBtn();
   }
   renderCustomerList();
-  showToast('Customer banned 🚫');
+  showToast('Customer permanently banned 🚫');
 }
 
 function unkickCustomer(key){
   bannedUsers.delete(key);
   const c=customers[key];
-  if(c) bannedIds.delete(c.block+'|'+c.flat+'|'+c.phone4);
+  if(c){bannedIds.delete(c.block+'|'+c.flat+'|'+c.phone4);delete c._kicked;}
   saveBans();
   renderCustomerList();
   showToast('Customer unbanned ✓');
@@ -1617,7 +1630,10 @@ function renderCustomerList(){
       return `<div class="cust-row">
         <div style="display:flex;align-items:center;justify-content:space-between;">
           <div class="cust-name">${c.name}</div>
-          <button onclick="kickCustomer('${c.key}')" style="background:rgba(176,18,40,.08);border:1px solid rgba(176,18,40,.25);color:var(--red2);font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:1.5px;padding:3px 10px;border-radius:100px;cursor:pointer;transition:all .2s;flex-shrink:0;" onmouseover="this.style.background='var(--red2)';this.style.color='#fff'" onmouseout="this.style.background='rgba(176,18,40,.08)';this.style.color='var(--red2)'">🚫 Ban</button>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <button onclick="kickCustomer('${c.key}')" title="Kick — forces logout only" style="background:rgba(240,165,0,.08);border:1px solid rgba(240,165,0,.3);color:#f0a500;font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 10px;border-radius:100px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='#f0a500';this.style.color='#000'" onmouseout="this.style.background='rgba(240,165,0,.08)';this.style.color='#f0a500'">👢 Kick</button>
+            <button onclick="banCustomer('${c.key}')" title="Ban — permanent block" style="background:rgba(176,18,40,.08);border:1px solid rgba(176,18,40,.25);color:var(--red2);font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 10px;border-radius:100px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='var(--red2)';this.style.color='#fff'" onmouseout="this.style.background='rgba(176,18,40,.08)';this.style.color='var(--red2)'">🚫 Ban</button>
+          </div>
         </div>
         <div class="cust-meta">Block ${c.block}, Flat ${c.flat} · Joined ${c.joinDate}</div>
         <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -1634,13 +1650,14 @@ function renderCustomerList(){
   // banned section
   if(banned.length){
     html+=`<div style="margin-top:1.2rem;padding-top:1rem;border-top:1px solid var(--bdr);">
-      <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--mt);letter-spacing:2px;margin-bottom:.7rem;">BANNED</div>
-      ${banned.map(c=>`<div class="cust-row" style="opacity:.5;">
-        <div>
-          <div class="cust-name" style="text-decoration:line-through;">${c.name}</div>
-          <div class="cust-meta">Block ${c.block}, Flat ${c.flat}</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--red2);letter-spacing:2px;margin-bottom:.7rem;">🚫 BANNED CUSTOMERS</div>
+      ${banned.map(c=>`<div class="cust-row" style="border-color:rgba(176,18,40,.2);background:rgba(176,18,40,.04);">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div class="cust-name" style="text-decoration:line-through;opacity:.6;">${c.name}</div>
+          <button onclick="unkickCustomer('${c.key}')" style="background:rgba(64,128,240,.08);border:1px solid rgba(64,128,240,.25);color:var(--blue3);font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 12px;border-radius:100px;cursor:pointer;transition:all .2s;flex-shrink:0;" onmouseover="this.style.background='var(--blue2)';this.style.color='#fff'" onmouseout="this.style.background='rgba(64,128,240,.08)';this.style.color='var(--blue3)'">↩ Unban</button>
         </div>
-        <button onclick="unkickCustomer('${c.key}')" style="background:rgba(64,128,240,.08);border:1px solid rgba(64,128,240,.25);color:var(--blue3);font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:1.5px;padding:3px 10px;border-radius:100px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='var(--blue2)';this.style.color='#fff'" onmouseout="this.style.background='rgba(64,128,240,.08)';this.style.color='var(--blue3)'">↩ Unban</button>
+        <div class="cust-meta">Block ${c.block}, Flat ${c.flat}</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--red2);letter-spacing:1px;">Permanently banned</div>
       </div>`).join('')}
     </div>`;
   }
