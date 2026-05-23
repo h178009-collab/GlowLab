@@ -914,13 +914,6 @@ function promoteToAdmin(key){
   renderCustomerList();
   showToast('Admin access granted ✓');
 }
-function demoteAdmin(key){
-  if(!isOwner()){showToast('Only the owner can remove admins');return;}
-  promotedAdmins.delete(key);
-  try{localStorage.setItem('gl_admins',JSON.stringify([...promotedAdmins]));}catch(e){}
-  renderCustomerList();
-  showToast('Admin access removed');
-}
 
 function openAdmin(){
   if(adminOn){showAdmin();return;}
@@ -1618,35 +1611,69 @@ function isBanned(block,flat,phone4){
   return bannedIds.has(block+'|'+flat+'|'+phone4);
 }
 
-function showBannedScreen(onOk){
+function showActionScreen(emoji,title,msg,btnLabel,onOk){
+  const existing=document.getElementById('action-overlay');
+  if(existing)existing.remove();
   const overlay=document.createElement('div');
-  overlay.id='banned-overlay';
+  overlay.id='action-overlay';
   overlay.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(3,1,8,.97);backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:center;';
   overlay.innerHTML=`
     <div style="text-align:center;padding:2rem;max-width:340px;">
-      <div style="font-size:3.5rem;margin-bottom:1.2rem;">🚫</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:2.2rem;letter-spacing:8px;color:var(--red2);margin-bottom:.5rem;">You Are Banned</div>
-      <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--mt);letter-spacing:2px;line-height:1.8;margin-bottom:2rem;">Your account has been suspended.<br>Contact the admin for enquiries.</div>
-      <button onclick="document.getElementById('banned-overlay').remove();(window._banCallback&&window._banCallback());" style="background:linear-gradient(135deg,var(--red),var(--red2));border:none;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:5px;padding:13px 36px;border-radius:100px;cursor:pointer;box-shadow:0 6px 20px rgba(176,18,40,.4);">OK</button>
+      <div style="font-size:3.5rem;margin-bottom:1.2rem;">${emoji}</div>
+      <div style="font-family:\'Bebas Neue\',sans-serif;font-size:2rem;letter-spacing:6px;color:var(--red2);margin-bottom:.6rem;line-height:1;">${title}</div>
+      <div style="font-family:\'Share Tech Mono\',monospace;font-size:10px;color:var(--mt);letter-spacing:2px;line-height:1.9;margin-bottom:2rem;">${msg}</div>
+      <button id="action-ok-btn" style="background:linear-gradient(135deg,var(--red),var(--red2));border:none;color:#fff;font-family:\'Bebas Neue\',sans-serif;font-size:1rem;letter-spacing:5px;padding:13px 36px;border-radius:100px;cursor:pointer;box-shadow:0 6px 20px rgba(176,18,40,.4);">${btnLabel||'OK'}</button>
     </div>`;
-  window._banCallback=onOk||null;
   document.body.appendChild(overlay);
+  document.getElementById('action-ok-btn').onclick=()=>{overlay.remove();if(onOk)onOk();};
+}
+function showBannedScreen(onOk){showActionScreen('🚫','You Are Banned','Your account has been suspended.<br>Contact the admin for enquiries.','OK',onOk);}
+function showKickedScreen(onOk){showActionScreen('👢','You Have Been Kicked','You have been removed from this session.<br>You may log back in.','OK',onOk);}
+function showDeletedScreen(onOk){showActionScreen('🗑','Account Deleted','Your account has been permanently deleted.<br>Contact the admin for enquiries.','OK',onOk);}
+function showAdminRemovedScreen(onOk){showActionScreen('🔒','Admin Access Removed','Your admin privileges have been revoked.','OK',onOk);}
+
+function flagUser(key,action){try{const f=JSON.parse(localStorage.getItem('gl_flags')||'{}');f[key]={action,ts:Date.now()};localStorage.setItem('gl_flags',JSON.stringify(f));}catch(e){}}
+function clearFlag(key){try{const f=JSON.parse(localStorage.getItem('gl_flags')||'{}');delete f[key];localStorage.setItem('gl_flags',JSON.stringify(f));}catch(e){}}
+
+function startStatusPoll(){
+  setInterval(()=>{
+    if(!currentUser)return;
+    try{
+      const flags=JSON.parse(localStorage.getItem('gl_flags')||'{}');
+      const f=flags[currentUser.key];
+      if(!f)return;
+      clearFlag(currentUser.key);
+      currentUser=null;
+      try{localStorage.removeItem('gl_user');}catch(e){}
+      updateLoginBtn();
+      if(f.action==='ban') showBannedScreen(null);
+      else if(f.action==='kick') showKickedScreen(null);
+      else if(f.action==='delete') showDeletedScreen(null);
+      else if(f.action==='demote') showAdminRemovedScreen(null);
+    }catch(e){}
+  },4000);
+}
+
+function forceLogout(key,action){
+  if(currentUser&&currentUser.key===key){
+    currentUser=null;
+    try{localStorage.removeItem('gl_user');}catch(e){}
+    updateLoginBtn();
+    if(action==='ban') showBannedScreen(null);
+    else if(action==='kick') showKickedScreen(null);
+    else if(action==='delete') showDeletedScreen(null);
+    else if(action==='demote') showAdminRemovedScreen(null);
+  }
+  flagUser(key,action);
 }
 
 function deleteAccount(key){
   if(!confirm('Permanently delete this account and all their data? This cannot be undone.'))return;
   const c=customers[key];
-  // log them out if currently logged in
-  if(currentUser&&currentUser.key===key){
-    currentUser=null;
-    try{localStorage.removeItem('gl_user');}catch(e){}
-    updateLoginBtn();
-    showBannedScreen(null);
-  }
-  // remove from all lists
+  forceLogout(key,'delete');
   bannedUsers.delete(key);
   promotedAdmins.delete(key);
-  if(c){bannedIds.delete(c.block+'|'+c.flat+'|'+c.phone4);}
+  if(c)bannedIds.delete(c.block+'|'+c.flat+'|'+c.phone4);
   delete customers[key];
   saveBans();
   try{localStorage.setItem('gl_customers',JSON.stringify(customers));}catch(e){}
@@ -1656,31 +1683,18 @@ function deleteAccount(key){
 
 function kickCustomer(key){
   const c=customers[key];if(!c)return;
-  // just force logout on this device — no permanent ban
-  if(currentUser&&currentUser.key===key){
-    currentUser=null;
-    try{localStorage.removeItem('gl_user');}catch(e){}
-    updateLoginBtn();
-  }
-  // mark as kicked (session only, not banned)
-  c._kicked=true;
+  forceLogout(key,'kick');
   renderCustomerList();
-  showToast(c.name+' has been kicked 👢');
+  showToast((c.name||'User')+' has been kicked 👢');
 }
 
 function banCustomer(key){
-  if(!confirm('Permanently ban this customer? They cannot log back in unless unbanned.')) return;
+  if(!confirm('Permanently ban this customer? They cannot log back in unless unbanned.'))return;
   bannedUsers.add(key);
   const c=customers[key];
-  if(c) bannedIds.add(c.block+'|'+c.flat+'|'+c.phone4);
+  if(c)bannedIds.add(c.block+'|'+c.flat+'|'+c.phone4);
   saveBans();
-  if(currentUser&&currentUser.key===key){
-    showBannedScreen(()=>{
-      currentUser=null;
-      try{localStorage.removeItem('gl_user');}catch(e){}
-      updateLoginBtn();
-    });
-  }
+  forceLogout(key,'ban');
   renderCustomerList();
   showToast('Customer permanently banned 🚫');
 }
@@ -1690,9 +1704,20 @@ function unkickCustomer(key){
   const c=customers[key];
   if(c){bannedIds.delete(c.block+'|'+c.flat+'|'+c.phone4);delete c._kicked;}
   saveBans();
+  clearFlag(key);
   renderCustomerList();
   showToast('Customer unbanned ✓');
 }
+
+function demoteAdmin(key){
+  if(!isOwner()){showToast('Only the owner can remove admins');return;}
+  promotedAdmins.delete(key);
+  try{localStorage.setItem('gl_admins',JSON.stringify([...promotedAdmins]));}catch(e){}
+  forceLogout(key,'demote');
+  renderCustomerList();
+  showToast('Admin access removed');
+}
+
 
 function renderCustomerList(){
   const search=(document.getElementById('cust-search')?.value||'').toLowerCase();
@@ -1818,6 +1843,7 @@ document.getElementById('ann-text').innerHTML='<span style="font-style:italic;co
 document.getElementById('ann-bar').style.display='block';
 loadSession();
 loadCustomersFromSheet();
+startStatusPoll();
 </script>
 </body>
 </html>
