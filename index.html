@@ -1107,7 +1107,10 @@ function renderDeliveries(){
   pb.innerHTML=pendingOrders.length?pendingOrders.map((o,i)=>`
     <div class="dcard">
       <div class="dinfo">
-        <div class="dname">${o.name} · ${o.flat}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
+          <div class="dname">${o.name} · ${o.flat}</div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--blue3);letter-spacing:1px;">${o.orderId||''}</div>
+        </div>
         <div class="ddet">📞 ${o.phone}${o.notes?' · 💬 '+o.notes:''}</div>
         <div class="ddet">🕐 ${o.delivTime}</div>
         <div class="ddet">${o.items}</div>
@@ -1127,7 +1130,10 @@ function renderDeliveries(){
   pr.innerHTML=readyOrders.length?readyOrders.map((o,i)=>`
     <div class="dcard" style="border-color:rgba(240,165,0,.3);background:rgba(240,165,0,.04);">
       <div class="dinfo">
-        <div class="dname" style="color:#f0a500;">🟡 ${o.name} · ${o.flat}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
+          <div class="dname" style="color:#f0a500;">🟡 ${o.name} · ${o.flat}</div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--blue3);letter-spacing:1px;">${o.orderId||''}</div>
+        </div>
         <div class="ddet">📞 ${o.phone}</div>
         <div class="ddet">🕐 ${o.delivTime}</div>
         <div class="ddet">${o.items}</div>
@@ -1140,7 +1146,7 @@ function renderDeliveries(){
       </div>
     </div>`).join(''):'<div style="color:var(--mt);font-size:13px;letter-spacing:1px;padding:.5rem 0;">Nothing ready yet</div>';
 
-  ps.innerHTML=pastOrders.length?pastOrders.map((o,i)=>`<div class="dcard past"><div class="dinfo"><div class="dname" style="text-decoration:line-through;">${o.name} · ${o.flat}</div><div class="ddet">${o.items}</div><div class="dprice">&#8377;${o.total}</div><div class="dtime">✓ Delivered · ${o.time}</div><button onclick="undoDelivered(${i})" style="margin-top:6px;background:transparent;border:1px solid var(--bdr);color:var(--mt);font-size:10px;font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:1px;padding:3px 10px;border-radius:100px;cursor:pointer;">↩ Undo</button></div></div>`).join(''):'<div style="color:var(--mt);font-size:13px;letter-spacing:1px;">No past deliveries</div>';
+  ps.innerHTML=pastOrders.length?pastOrders.map((o,i)=>`<div class="dcard past"><div class="dinfo"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;"><div class="dname" style="text-decoration:line-through;">${o.name} · ${o.flat}</div><div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--mt);letter-spacing:1px;">${o.orderId||''}</div></div><div class="ddet">${o.items}</div><div class="dprice">&#8377;${o.total}</div><div class="dtime">✓ Delivered · ${o.time}</div><button onclick="undoDelivered(${i})" style="margin-top:6px;background:transparent;border:1px solid var(--bdr);color:var(--mt);font-size:10px;font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:1px;padding:3px 10px;border-radius:100px;cursor:pointer;">↩ Undo</button></div></div>`).join(''):'<div style="color:var(--mt);font-size:13px;letter-spacing:1px;">No past deliveries</div>';
 }
 
 function markReady(i,cb){
