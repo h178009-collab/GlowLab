@@ -859,6 +859,7 @@ function confirmAndPlace(){
   const orderId='GL-'+Math.floor(1000+Math.random()*9000);
   const fullOrder={...pendingOrderData,orderId,status:'pending'};
   pendingOrders.push(fullOrder);
+  knownOrderIds.add(orderId);
   // send to Google Sheets
   gsPost({type:'order',name:fullOrder.name,block:fullOrder.flat.split(', Flat ')[0].replace('Block ',''),flat:fullOrder.flat.split(', Flat ')[1]||fullOrder.flat,phone4:fullOrder.phone.slice(-4),orderId:fullOrder.orderId,items:fullOrder.items,total:fullOrder.total,feedback:fullOrder.notes||''});
   // attach to customer record
@@ -966,7 +967,7 @@ function switchTab(t){
     if(body)body.style.display=k===t?'block':'none';
     if(tab)tab.classList.toggle('active',k===t);
   });
-  if(t==='del')renderDeliveries();
+  if(t==='del'){syncOrdersFromSheet().then(()=>renderDeliveries());}
   if(t==='facts')renderFactsList();
   if(t==='cust'){loadCustomersFromSheet().then(()=>renderCustomerList());}
 }
@@ -1654,6 +1655,49 @@ function startStatusPoll(){
   },4000);
 }
 
+// ── ORDER SYNC ────────────────────────────────────────────
+let knownOrderIds=new Set();
+
+async function syncOrdersFromSheet(){
+  if(!adminOn)return;
+  try{
+    const orders=await gsFetch({type:'orders'});
+    if(!Array.isArray(orders))return;
+    let hasNew=false;
+    orders.forEach(o=>{
+      if(!o.orderId)return;
+      if(knownOrderIds.has(o.orderId))return;
+      // only add truly new pending orders not already tracked
+      const alreadyPending=pendingOrders.find(x=>x.orderId===o.orderId);
+      const alreadyReady=readyOrders.find(x=>x.orderId===o.orderId);
+      const alreadyPast=pastOrders.find(x=>x.orderId===o.orderId);
+      if(alreadyPending||alreadyReady||alreadyPast){knownOrderIds.add(o.orderId);return;}
+      // it's a new order from another device
+      if(o.status==='Pending'||o.status==='pending'||!o.status){
+        pendingOrders.push({
+          name:o.name,phone:o.phone4?'****'+o.phone4:o.phone4||'',
+          flat:`Block ${o.block}, Flat ${o.flat}`,
+          notes:o.feedback||'',items:o.items,
+          total:Number(o.total),time:o.timestamp,
+          delivTime:'—',orderId:o.orderId,status:'pending'
+        });
+        hasNew=true;
+      }
+      knownOrderIds.add(o.orderId);
+    });
+    if(hasNew){
+      updateDelBadge();
+      renderDeliveries();
+      showToast('📦 New order received!');
+    }
+  }catch(e){}
+}
+
+function startOrderPoll(){
+  // poll every 15 seconds when admin is open
+  setInterval(syncOrdersFromSheet,15000);
+}
+
 function forceLogout(key,action){
   if(currentUser&&currentUser.key===key){
     currentUser=null;
@@ -1844,6 +1888,7 @@ document.getElementById('ann-bar').style.display='block';
 loadSession();
 loadCustomersFromSheet();
 startStatusPoll();
+startOrderPoll();
 </script>
 </body>
 </html>
