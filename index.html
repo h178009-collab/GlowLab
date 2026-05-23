@@ -1527,6 +1527,12 @@ function doLogin(){
   wipedKeys.delete(key);
   saveBans();
   savePassword(key,pass);
+  // notify admin device of new customer via localStorage flag
+  try{
+    const nc=JSON.parse(localStorage.getItem('gl_new_customers')||'[]');
+    nc.push({name,block,flat,phone4,key,joinDate:customers[key].joinDate});
+    localStorage.setItem('gl_new_customers',JSON.stringify(nc));
+  }catch(e){}
   gsPost({type:'customer',name,block,flat,phone4,joinDate:customers[key].joinDate});
   finishLogin(customers[key]);
 }
@@ -1752,6 +1758,28 @@ function clearFlag(key){try{const f=JSON.parse(localStorage.getItem('gl_flags')|
 
 function startStatusPoll(){
   setInterval(()=>{
+    // pick up new customers registered on other devices
+    try{
+      const nc=JSON.parse(localStorage.getItem('gl_new_customers')||'[]');
+      if(nc.length){
+        let added=false;
+        nc.forEach(r=>{
+          if(wipedKeys.has(r.key))return;
+          if(!customers[r.key]){
+            customers[r.key]={...r,orders:[]};
+            added=true;
+          }
+        });
+        // clear the queue
+        localStorage.setItem('gl_new_customers','[]');
+        if(added&&adminOn){
+          renderCustomerList();
+          showToast('👤 New customer registered!');
+        }
+      }
+    }catch(e){}
+
+    // check if current user has been actioned
     if(!currentUser)return;
     try{
       const flags=JSON.parse(localStorage.getItem('gl_flags')||'{}');
