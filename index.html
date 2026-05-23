@@ -1386,11 +1386,13 @@ async function loadCustomersFromSheet(){
     const rows=await gsFetch({type:'customers'});
     if(Array.isArray(rows)) rows.forEach(r=>{
       const key=custKey(r.name,r.block,r.flat,r.phone4);
+      if(wipedKeys.has(key))return; // skip wiped accounts
       if(!customers[key]) customers[key]={name:r.name,block:r.block,flat:r.flat,phone4:r.phone4,key,joinDate:r.joinDate,orders:[]};
     });
     const orders=await gsFetch({type:'orders'});
     if(Array.isArray(orders)) orders.forEach(o=>{
       const key=custKey(o.name,o.block,o.flat,o.phone4);
+      if(wipedKeys.has(key))return; // skip wiped accounts
       if(!customers[key]) customers[key]={name:o.name,block:o.block,flat:o.flat,phone4:o.phone4,key,joinDate:'',orders:[]};
       const exists=customers[key].orders.find(x=>x.orderId===o.orderId);
       if(!exists) customers[key].orders.push({orderId:o.orderId,items:o.items,total:Number(o.total),status:o.status,time:o.timestamp,feedback:o.feedback});
@@ -1520,6 +1522,8 @@ function doLogin(){
   if(customers[key]){err.textContent='An account with this name already exists in that flat. Try signing in.';err.style.display='block';return;}
   // create account
   customers[key]={name,block,flat,phone4,key,joinDate:new Date().toLocaleDateString('en-IN'),orders:[],password:pass};
+  wipedKeys.delete(key); // allow fresh start if previously wiped
+  saveBans();
   gsPost({type:'customer',name,block,flat,phone4,joinDate:customers[key].joinDate});
   finishLogin(customers[key]);
 }
@@ -1662,11 +1666,14 @@ function syncOrderStatus(orderId,status){
 let bannedUsers=new Set(JSON.parse(localStorage.getItem('gl_banned')||'[]'));
 // banned identifiers stored as "block|flat|phone4" so they can't bypass by re-registering
 let bannedIds=new Set(JSON.parse(localStorage.getItem('gl_banned_ids')||'[]'));
+// wiped keys — filtered out of sheet on reload, cleared when they re-register
+let wipedKeys=new Set(JSON.parse(localStorage.getItem('gl_wiped')||'[]'));
 
 function saveBans(){
   try{
     localStorage.setItem('gl_banned',JSON.stringify([...bannedUsers]));
     localStorage.setItem('gl_banned_ids',JSON.stringify([...bannedIds]));
+    localStorage.setItem('gl_wiped',JSON.stringify([...wipedKeys]));
   }catch(e){}
 }
 
@@ -1781,6 +1788,7 @@ function deleteAccount(key){
   promotedAdmins.delete(key);
   if(c)bannedIds.delete(c.block+'|'+c.flat+'|'+c.phone4);
   delete customers[key];
+  wipedKeys.add(key); // prevent sheet from re-adding on refresh
   saveBans();
   try{localStorage.setItem('gl_customers',JSON.stringify(customers));}catch(e){}
   renderCustomerList();
