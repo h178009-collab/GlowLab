@@ -242,7 +242,7 @@ footer{text-align:center;padding:2rem 2.5rem;border-top:1px solid var(--bdr);fon
 
 <div id="ann-bar"><div id="ann-text"></div></div>
 
-<div id="countdown-bar" style="display:none;background:linear-gradient(90deg,rgba(77,143,255,.1),rgba(184,17,42,.08));border-bottom:1px solid rgba(77,143,255,.2);padding:.6rem 2.5rem;">
+<div id="countdown-bar" style="display:none;background:linear-gradient(90deg,rgba(64,128,240,.1),rgba(176,18,40,.08));border-bottom:1px solid rgba(64,128,240,.2);padding:.6rem 2.5rem;">
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
     <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--blue3);letter-spacing:3px;text-transform:uppercase;">✦ New Drop Incoming</div>
     <div style="display:flex;align-items:center;gap:6px;" id="cd-blocks">
@@ -461,7 +461,7 @@ footer{text-align:center;padding:2rem 2.5rem;border-top:1px solid var(--bdr);fon
       <div id="colour-section"><div class="slbl">Choose Your Colour</div>
       <div class="copts" id="copts"></div>
       <!-- COMBO -->
-      <div id="combo-sec" style="margin-top:.9rem;background:rgba(77,143,255,.04);border:1px solid rgba(77,143,255,.13);border-radius:12px;padding:.9rem;">
+      <div id="combo-sec" style="margin-top:.9rem;background:rgba(64,128,240,.04);border:1px solid rgba(64,128,240,.13);border-radius:12px;padding:.9rem;">
         <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="togCombo()">
           <div><div style="font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;color:var(--blue3);letter-spacing:2px;text-transform:uppercase;">⊕ Combo Colour</div><div style="font-size:11px;color:var(--mt);margin-top:2px;">Mix two colours in one piece · +10%</div></div>
           <div class="tgsw" id="combo-sw"><div class="tgkn"></div></div>
@@ -829,6 +829,7 @@ function cartQty(i,d){
 function toggleCart(){document.getElementById('cpnl').classList.toggle('show');}
 
 function submitOrder(){
+  if(!shopOpen){showToast('Shop is currently closed — check back soon!');return;}
   const name=document.getElementById('f-name').value.trim(),phone=document.getElementById('f-phone').value.trim(),block=document.getElementById('f-block').value.trim(),flatno=document.getElementById('f-flatno').value.trim(),notes=document.getElementById('f-notes').value.trim();
   const flat=block&&flatno?`Block ${block}, Flat ${flatno}`:block||flatno;
   const t1=document.getElementById('f-t1').value.trim(),ap1=document.getElementById('f-ap1').value,t2=document.getElementById('f-t2').value.trim(),ap2=document.getElementById('f-ap2').value;
@@ -918,8 +919,12 @@ function promoteToAdmin(key){
 
 function openAdmin(){
   if(adminOn){showAdmin();return;}
-  // if logged-in user has admin access, skip PIN
-  if(canAccessAdmin()){adminOn=true;showAdmin();return;}
+  if(canAccessAdmin()){
+    if(currentUser&&isBanned(currentUser.block,currentUser.flat,currentUser.phone4)){
+      showBannedScreen(null);return;
+    }
+    adminOn=true;showAdmin();return;
+  }
   pinVal='';updateDots();
   document.getElementById('pc-err').style.display='none';
   document.getElementById('pc-modal').classList.add('show');
