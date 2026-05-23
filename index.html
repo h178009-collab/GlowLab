@@ -1393,14 +1393,17 @@ async function loadCustomersFromSheet(){
   try{
     const rows=await gsFetch({type:'customers'});
     if(Array.isArray(rows)) rows.forEach(r=>{
+      if(!r.name||!r.block||!r.flat)return;
       const key=custKey(r.name,r.block,r.flat,r.phone4);
-      if(wipedKeys.has(key))return; // skip wiped accounts
+      // skip if locally deleted (wiped) AND no local password — means truly gone
+      if(wipedKeys.has(key)&&!getPassword(key))return;
       if(!customers[key]) customers[key]={name:r.name,block:r.block,flat:r.flat,phone4:r.phone4,key,joinDate:r.joinDate,orders:[]};
     });
     const orders=await gsFetch({type:'orders'});
     if(Array.isArray(orders)) orders.forEach(o=>{
+      if(!o.name||!o.block||!o.flat)return;
       const key=custKey(o.name,o.block,o.flat,o.phone4);
-      if(wipedKeys.has(key))return; // skip wiped accounts
+      if(wipedKeys.has(key)&&!getPassword(key))return;
       if(!customers[key]) customers[key]={name:o.name,block:o.block,flat:o.flat,phone4:o.phone4,key,joinDate:'',orders:[]};
       const exists=customers[key].orders.find(x=>x.orderId===o.orderId);
       if(!exists) customers[key].orders.push({orderId:o.orderId,items:o.items,total:Number(o.total),status:o.status,time:o.timestamp,feedback:o.feedback});
@@ -1527,13 +1530,16 @@ function doLogin(){
   if(pass.length<4){err.textContent='Password must be at least 4 characters.';err.style.display='block';return;}
   if(isBanned(block,flat,phone4)){err.textContent='This account has been suspended.';err.style.display='block';return;}
   const key=custKey(name,block,flat,phone4);
-  if(customers[key]){err.textContent='An account with this name already exists in that flat. Try signing in.';err.style.display='block';return;}
-  // create account
+  // check if account already exists AND has a password set (not a wiped/ghost entry)
+  const existing=customers[key];
+  if(existing&&getPassword(key)){
+    err.textContent='An account with this name already exists. Try signing in.';err.style.display='block';return;
+  }
+  // create or overwrite (fresh start after wipe)
   customers[key]={name,block,flat,phone4,key,joinDate:new Date().toLocaleDateString('en-IN'),orders:[],password:pass};
   wipedKeys.delete(key);
   saveBans();
   savePassword(key,pass);
-  // notify admin device of new customer via localStorage flag
   try{
     const nc=JSON.parse(localStorage.getItem('gl_new_customers')||'[]');
     nc.push({name,block,flat,phone4,key,joinDate:customers[key].joinDate});
@@ -1630,7 +1636,6 @@ function deleteOwnAccount(){
   if(!confirm('Delete your account? All your data will be wiped. You can create a new account anytime.'))return;
   const key=currentUser.key;
   const c=customers[key];
-  // wipe from local
   bannedUsers.delete(key);
   promotedAdmins.delete(key);
   if(c)bannedIds.delete(c.block+'|'+c.flat+'|'+c.phone4);
@@ -1638,7 +1643,6 @@ function deleteOwnAccount(){
   wipedKeys.add(key);
   deletePassword(key);
   saveBans();
-  // log out
   currentUser=null;
   try{localStorage.removeItem('gl_user');}catch(e){}
   updateLoginBtn();
