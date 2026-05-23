@@ -620,11 +620,45 @@ footer{text-align:center;padding:2rem 2.5rem;border-top:1px solid var(--bdr);fon
 <div id="hist-modal">
   <div class="hist-box">
     <div class="hist-hdr">
-      <span class="hist-title">Your Orders</span>
+      <span class="hist-title">My Account</span>
       <button class="xbtn" onclick="closeHist()">✕</button>
     </div>
     <div style="padding:1rem 1.5rem .5rem;">
-      <div id="hist-user" style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--mt);letter-spacing:2px;"></div>
+      <div id="hist-user" style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--mt);letter-spacing:2px;margin-bottom:.8rem;"></div>
+      <!-- CHANGE PASSWORD -->
+      <div style="background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:.9rem;margin-bottom:1rem;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:3px;margin-bottom:.8rem;">Change Password</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div>
+            <div class="flbl" style="margin-bottom:4px;">Current Password</div>
+            <div style="position:relative;">
+              <input class="finp" type="password" id="chpw-old" placeholder="Current password" style="padding-right:50px;">
+              <button onclick="togVis('chpw-old','chpw-old-btn')" id="chpw-old-btn" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:transparent;border:none;color:var(--mt);cursor:pointer;font-size:10px;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:1px;">SHOW</button>
+            </div>
+          </div>
+          <div>
+            <div class="flbl" style="margin-bottom:4px;">New Password</div>
+            <div style="position:relative;">
+              <input class="finp" type="password" id="chpw-new" placeholder="New password (min 4 chars)" style="padding-right:50px;">
+              <button onclick="togVis('chpw-new','chpw-new-btn')" id="chpw-new-btn" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:transparent;border:none;color:var(--mt);cursor:pointer;font-size:10px;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:1px;">SHOW</button>
+            </div>
+          </div>
+          <div>
+            <div class="flbl" style="margin-bottom:4px;">Confirm New Password</div>
+            <div style="position:relative;">
+              <input class="finp" type="password" id="chpw-con" placeholder="Repeat new password" style="padding-right:50px;">
+              <button onclick="togVis('chpw-con','chpw-con-btn')" id="chpw-con-btn" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:transparent;border:none;color:var(--mt);cursor:pointer;font-size:10px;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:1px;">SHOW</button>
+            </div>
+          </div>
+          <div id="chpw-err" style="font-size:10px;color:var(--red2);font-family:'Share Tech Mono',monospace;letter-spacing:1px;display:none;"></div>
+          <button class="apbtn" style="margin-top:0;align-self:flex-start;" onclick="changeUserPassword()">Update Password</button>
+        </div>
+      </div>
+      <!-- LOGOUT -->
+      <button onclick="logoutUser();closeHist();" style="width:100%;background:transparent;border:1px solid rgba(176,18,40,.3);color:var(--red2);font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;padding:10px;border-radius:100px;cursor:pointer;transition:all .2s;margin-bottom:.5rem;" onmouseover="this.style.background='rgba(176,18,40,.08)'" onmouseout="this.style.background='transparent'">↩ Log Out</button>
+    </div>
+    <div style="padding:0 1.5rem;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:3px;margin-bottom:.6rem;opacity:.7;">Order History</div>
     </div>
     <div id="hist-list"></div>
     <div style="height:1rem;"></div>
@@ -1561,6 +1595,8 @@ function attachOrderToCustomer(orderData){
 function openHist(){
   if(!currentUser){openLogin();return;}
   const key=currentUser.key;
+  ['chpw-old','chpw-new','chpw-con'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const errEl=document.getElementById('chpw-err');if(errEl)errEl.style.display='none';
   // refresh from sheet first
   loadMyOrders().then(()=>{
     const cust=customers[key];
@@ -1570,6 +1606,27 @@ function openHist(){
   });
   document.getElementById('hist-modal').classList.add('show');
 }
+function changeUserPassword(){
+  if(!currentUser)return;
+  const oldP=document.getElementById('chpw-old').value;
+  const newP=document.getElementById('chpw-new').value;
+  const conP=document.getElementById('chpw-con').value;
+  const err=document.getElementById('chpw-err');
+  err.style.display='none';
+  const key=currentUser.key;
+  const cust=customers[key];
+  if(!cust){err.textContent='Account not found.';err.style.display='block';return;}
+  if(cust.password&&cust.password!==oldP){err.textContent='Current password is incorrect.';err.style.display='block';return;}
+  if(!newP||newP.length<4){err.textContent='New password must be at least 4 characters.';err.style.display='block';return;}
+  if(newP!==conP){err.textContent='Passwords do not match.';err.style.display='block';return;}
+  cust.password=newP;
+  currentUser.password=newP;
+  saveSession();
+  ['chpw-old','chpw-new','chpw-con'].forEach(id=>{document.getElementById(id).value='';});
+  err.style.color='var(--blue3)';err.textContent='Password updated successfully ✓';err.style.display='block';
+  setTimeout(()=>{err.style.display='none';err.style.color='var(--red2)';},3000);
+}
+
 function closeHist(){document.getElementById('hist-modal').classList.remove('show');}
 
 function renderHistList(cust){
