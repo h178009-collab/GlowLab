@@ -1352,11 +1352,13 @@ async function loadCustomersFromSheet(){
     const rows=await gsFetch({type:'customers'});
     if(Array.isArray(rows)) rows.forEach(r=>{
       const key=custKey(r.name,r.block,r.flat,r.phone4);
+      if(deletedAccounts.has(key))return; // skip deleted
       if(!customers[key]) customers[key]={name:r.name,block:r.block,flat:r.flat,phone4:r.phone4,key,joinDate:r.joinDate,orders:[]};
     });
     const orders=await gsFetch({type:'orders'});
     if(Array.isArray(orders)) orders.forEach(o=>{
       const key=custKey(o.name,o.block,o.flat,o.phone4);
+      if(deletedAccounts.has(key))return; // skip deleted
       if(!customers[key]) customers[key]={name:o.name,block:o.block,flat:o.flat,phone4:o.phone4,key,joinDate:'',orders:[]};
       const exists=customers[key].orders.find(x=>x.orderId===o.orderId);
       if(!exists) customers[key].orders.push({orderId:o.orderId,items:o.items,total:Number(o.total),status:o.status,time:o.timestamp,feedback:o.feedback});
@@ -1605,11 +1607,14 @@ function syncOrderStatus(orderId,status){
 let bannedUsers=new Set(JSON.parse(localStorage.getItem('gl_banned')||'[]'));
 // banned identifiers stored as "block|flat|phone4" so they can't bypass by re-registering
 let bannedIds=new Set(JSON.parse(localStorage.getItem('gl_banned_ids')||'[]'));
+// permanently deleted account keys — never re-added from sheet
+let deletedAccounts=new Set(JSON.parse(localStorage.getItem('gl_deleted')||'[]'));
 
 function saveBans(){
   try{
     localStorage.setItem('gl_banned',JSON.stringify([...bannedUsers]));
     localStorage.setItem('gl_banned_ids',JSON.stringify([...bannedIds]));
+    localStorage.setItem('gl_deleted',JSON.stringify([...deletedAccounts]));
   }catch(e){}
 }
 
@@ -1672,6 +1677,8 @@ async function syncOrdersFromSheet(){
     orders.forEach(o=>{
       if(!o.orderId)return;
       if(knownOrderIds.has(o.orderId))return;
+      const custKey2=custKey(o.name||'',o.block||'',o.flat||'',o.phone4||'');
+      if(deletedAccounts.has(custKey2))return; // skip deleted accounts' orders
       // only add truly new pending orders not already tracked
       const alreadyPending=pendingOrders.find(x=>x.orderId===o.orderId);
       const alreadyReady=readyOrders.find(x=>x.orderId===o.orderId);
@@ -1724,6 +1731,7 @@ function deleteAccount(key){
   promotedAdmins.delete(key);
   if(c)bannedIds.delete(c.block+'|'+c.flat+'|'+c.phone4);
   delete customers[key];
+  deletedAccounts.add(key); // never re-add from sheet
   saveBans();
   try{localStorage.setItem('gl_customers',JSON.stringify(customers));}catch(e){}
   renderCustomerList();
