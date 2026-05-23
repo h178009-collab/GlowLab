@@ -656,6 +656,8 @@ footer{text-align:center;padding:2rem 2.5rem;border-top:1px solid var(--bdr);fon
       </div>
       <!-- LOGOUT -->
       <button onclick="logoutUser();closeHist();" style="width:100%;background:transparent;border:1px solid rgba(176,18,40,.3);color:var(--red2);font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;padding:10px;border-radius:100px;cursor:pointer;transition:all .2s;margin-bottom:.5rem;" onmouseover="this.style.background='rgba(176,18,40,.08)'" onmouseout="this.style.background='transparent'">↩ Log Out</button>
+      <!-- DELETE OWN ACCOUNT -->
+      <button onclick="deleteOwnAccount()" style="width:100%;background:transparent;border:1px solid rgba(100,100,100,.2);color:var(--mt);font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:600;letter-spacing:2px;padding:8px;border-radius:100px;cursor:pointer;transition:all .2s;margin-bottom:.5rem;" onmouseover="this.style.borderColor='rgba(176,18,40,.3)';this.style.color='var(--red2)'" onmouseout="this.style.borderColor='rgba(100,100,100,.2)';this.style.color='var(--mt)'">🗑 Delete My Account</button>
     </div>
     <div style="padding:0 1.5rem;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:3px;margin-bottom:.6rem;opacity:.7;">Order History</div>
@@ -1611,6 +1613,27 @@ function openHist(){
   });
   document.getElementById('hist-modal').classList.add('show');
 }
+function deleteOwnAccount(){
+  if(!currentUser)return;
+  if(!confirm('Delete your account? All your data will be wiped. You can create a new account anytime.'))return;
+  const key=currentUser.key;
+  const c=customers[key];
+  // wipe from local
+  bannedUsers.delete(key);
+  promotedAdmins.delete(key);
+  if(c)bannedIds.delete(c.block+'|'+c.flat+'|'+c.phone4);
+  delete customers[key];
+  wipedKeys.add(key);
+  deletePassword(key);
+  saveBans();
+  // log out
+  currentUser=null;
+  try{localStorage.removeItem('gl_user');}catch(e){}
+  updateLoginBtn();
+  closeHist();
+  showActionScreen('🗑','Account Deleted','Your account and all data has been wiped.<br>You can create a new account anytime.','OK',null);
+}
+
 function changeUserPassword(){
   if(!currentUser)return;
   const oldP=document.getElementById('chpw-old').value;
