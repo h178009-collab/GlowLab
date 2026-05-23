@@ -1402,32 +1402,31 @@ async function loadCustomersFromSheet(){
 
 async function saveSession(){
   try{
+    // only save current user — full customer list always fetched fresh from sheet
     localStorage.setItem('gl_user',JSON.stringify(currentUser));
-    localStorage.setItem('gl_customers',JSON.stringify(customers));
   }catch(e){}
 }
 
 function loadSession(){
   try{
     const u=localStorage.getItem('gl_user');
-    const c=localStorage.getItem('gl_customers');
-    if(c) customers=JSON.parse(c);
+    // restore current user only — not the full customer list (sheet is source of truth)
     if(u){
       currentUser=JSON.parse(u);
-      // block if banned
       if(currentUser&&isBanned(currentUser.block,currentUser.flat,currentUser.phone4)){
-        const u=currentUser;
+        const key=currentUser.key;
         currentUser=null;
         try{localStorage.removeItem('gl_user');}catch(e){}
         showBannedScreen(null);
         return;
       }
-      // make sure they exist in customers object
-      if(currentUser&&currentUser.key&&!customers[currentUser.key]){
-        customers[currentUser.key]={...currentUser,orders:[]};
+      if(currentUser&&currentUser.key){
+        // restore just this user into customers if not present
+        if(!customers[currentUser.key]){
+          customers[currentUser.key]={...currentUser,orders:[]};
+        }
       }
       updateLoginBtn();
-      // silently refresh their orders from sheet
       loadMyOrders().then(()=>saveSession());
     }
   }catch(e){}
@@ -1490,7 +1489,8 @@ function doSignIn(){
   // check local first
   let found=customers[key];
   if(found){
-    if(found.password&&found.password!==pass){err.textContent='Incorrect password.';err.style.display='block';return;}
+    const storedPass=getPassword(found.key)||found.password;
+    if(storedPass&&storedPass!==pass){err.textContent='Incorrect password.';err.style.display='block';return;}
     finishLogin(found);return;
   }
   // try sheet
@@ -1522,8 +1522,9 @@ function doLogin(){
   if(customers[key]){err.textContent='An account with this name already exists in that flat. Try signing in.';err.style.display='block';return;}
   // create account
   customers[key]={name,block,flat,phone4,key,joinDate:new Date().toLocaleDateString('en-IN'),orders:[],password:pass};
-  wipedKeys.delete(key); // allow fresh start if previously wiped
+  wipedKeys.delete(key);
   saveBans();
+  savePassword(key,pass);
   gsPost({type:'customer',name,block,flat,phone4,joinDate:customers[key].joinDate});
   finishLogin(customers[key]);
 }
@@ -1625,6 +1626,7 @@ function changeUserPassword(){
   if(newP!==conP){err.textContent='Passwords do not match.';err.style.display='block';return;}
   cust.password=newP;
   currentUser.password=newP;
+  savePassword(key,newP);
   saveSession();
   ['chpw-old','chpw-new','chpw-con'].forEach(id=>{document.getElementById(id).value='';});
   err.style.color='var(--blue3)';err.textContent='Password updated successfully ✓';err.style.display='block';
@@ -1702,6 +1704,26 @@ function showKickedScreen(onOk){showActionScreen('👢','You Have Been Kicked','
 function showDeletedScreen(onOk){showActionScreen('🗑','Account Deleted','Your account has been permanently deleted.<br>Contact the admin for enquiries.','OK',onOk);}
 function showAdminRemovedScreen(onOk){showActionScreen('🔒','Admin Access Removed','Your admin privileges have been revoked.','OK',onOk);}
 
+function savePassword(key,pass){
+  try{
+    const pw=JSON.parse(localStorage.getItem('gl_pw')||'{}');
+    pw[key]=pass;
+    localStorage.setItem('gl_pw',JSON.stringify(pw));
+  }catch(e){}
+}
+function getPassword(key){
+  try{
+    const pw=JSON.parse(localStorage.getItem('gl_pw')||'{}');
+    return pw[key]||null;
+  }catch(e){return null;}
+}
+function deletePassword(key){
+  try{
+    const pw=JSON.parse(localStorage.getItem('gl_pw')||'{}');
+    delete pw[key];
+    localStorage.setItem('gl_pw',JSON.stringify(pw));
+  }catch(e){}
+}
 function flagUser(key,action){try{const f=JSON.parse(localStorage.getItem('gl_flags')||'{}');f[key]={action,ts:Date.now()};localStorage.setItem('gl_flags',JSON.stringify(f));}catch(e){}}
 function clearFlag(key){try{const f=JSON.parse(localStorage.getItem('gl_flags')||'{}');delete f[key];localStorage.setItem('gl_flags',JSON.stringify(f));}catch(e){}}
 
@@ -1788,7 +1810,8 @@ function deleteAccount(key){
   promotedAdmins.delete(key);
   if(c)bannedIds.delete(c.block+'|'+c.flat+'|'+c.phone4);
   delete customers[key];
-  wipedKeys.add(key); // prevent sheet from re-adding on refresh
+  wipedKeys.add(key);
+  deletePassword(key);
   saveBans();
   try{localStorage.setItem('gl_customers',JSON.stringify(customers));}catch(e){}
   renderCustomerList();
