@@ -1382,7 +1382,7 @@ function fireConfetti(){
 }
 
 // ── GOOGLE SHEETS SYNC ───────────────────────────────────
-const GS_URL='https://script.google.com/macros/s/AKfycbz9s491QZ4hoPDfzyo1qug6C9ER3rIidLNJcl25UXuQhTolrF7QDG027eFOJDySWhGe/exec';
+const GS_URL='https://script.google.com/macros/s/AKfycbyZT005QXeYpwSvVJl-z2h7gyWuDiIqJTGEhE2inLp16AgfvYavVWjD6TpbjSjw3UsN/exec';
 
 function gsPost(data){
   fetch(GS_URL,{method:'POST',mode:'no-cors',body:JSON.stringify(data),headers:{'Content-Type':'application/json'}}).catch(()=>{});
@@ -1794,18 +1794,33 @@ function startStatusPoll(){
     // check if current user was actioned by admin
     if(!currentUser)return;
     try{
+      // check localStorage flags first (same browser)
       const flags=JSON.parse(localStorage.getItem('gl_flags')||'{}');
       const f=flags[currentUser.key];
-      if(!f)return;
-      clearFlag(currentUser.key);
-      const k=currentUser.key;
-      currentUser=null;
-      try{localStorage.removeItem('gl_user');}catch(e){}
-      updateLoginBtn();
-      if(f.action==='ban') showBannedScreen(null);
-      else if(f.action==='kick') showKickedScreen(null);
-      else if(f.action==='delete'){deletePassword(k);wipedKeys.delete(k);saveBans();showDeletedScreen(null);}
-      else if(f.action==='demote') showAdminRemovedScreen(null);
+      if(f){
+        clearFlag(currentUser.key);
+        const k=currentUser.key;
+        currentUser=null;
+        try{localStorage.removeItem('gl_user');}catch(e){}
+        updateLoginBtn();
+        if(f.action==='ban') showBannedScreen(null);
+        else if(f.action==='kick') showKickedScreen(null);
+        else if(f.action==='delete'){deletePassword(k);wipedKeys.delete(k);saveBans();showDeletedScreen(null);}
+        else if(f.action==='demote') showAdminRemovedScreen(null);
+        return;
+      }
+      // check sheet for cross-device actions
+      gsFetch({type:'action',block:currentUser.block,flat:currentUser.flat,phone4:currentUser.phone4}).then(res=>{
+        if(!res||!res.action)return;
+        const k=currentUser&&currentUser.key;
+        if(!k)return;
+        currentUser=null;
+        try{localStorage.removeItem('gl_user');}catch(e){}
+        updateLoginBtn();
+        if(res.action==='delete'){deletePassword(k);wipedKeys.delete(k);saveBans();showDeletedScreen(null);}
+        else if(res.action==='ban') showBannedScreen(null);
+        else if(res.action==='kick') showKickedScreen(null);
+      }).catch(()=>{});
     }catch(e){}
   },4000);
 }
@@ -1874,6 +1889,7 @@ function forceLogout(key,action){
 function deleteAccount(key){
   if(!confirm('Delete this account? Data wiped — they can re-register.'))return;
   const c=customers[key];
+  // same-device logout
   forceLogout(key,'delete');
   bannedUsers.delete(key);
   promotedAdmins.delete(key);
@@ -1882,11 +1898,9 @@ function deleteAccount(key){
   wipedKeys.add(key);
   deletePassword(key);
   saveBans();
-  // rebuild customers from sheet, skipping this key
-  loadCustomersFromSheet().then(()=>{
-    delete customers[key]; // remove again after sheet reload
-    renderCustomerList();
-  });
+  // cross-device: post action to sheet so their device picks it up via poll
+  if(c) gsPost({type:'action',action:'delete',block:c.block,flat:c.flat,phone4:c.phone4||''});
+  loadCustomersFromSheet().then(()=>{delete customers[key];renderCustomerList();});
   showToast('Account deleted 🗑');
 }
 
