@@ -1010,7 +1010,11 @@ function switchTab(t){
   });
   if(t==='del'){syncOrdersFromSheet().then(()=>renderDeliveries());}
   if(t==='facts')renderFactsList();
-  if(t==='cust'){loadCustomersFromSheet().then(()=>renderCustomerList());}
+  if(t==='cust'){
+    // full fresh load — reset customers from sheet
+    customers={};
+    loadCustomersFromSheet().then(()=>renderCustomerList());
+  }
 }
 
 function renderAdmin(){
@@ -1500,6 +1504,14 @@ function doSignIn(){
   if(pass!==storedPass){err.textContent='Incorrect password.';err.style.display='block';return;}
   // password correct
   if(!customers[key]) customers[key]={name,block,flat,phone4,key,joinDate:new Date().toLocaleDateString('en-IN'),orders:[]};
+  // notify admin panel in case they don't have this customer yet
+  try{
+    const nc=JSON.parse(localStorage.getItem('gl_new_customers')||'[]');
+    if(!nc.find(x=>x.key===key)){
+      nc.push({name,block,flat,phone4,key,joinDate:customers[key].joinDate});
+      localStorage.setItem('gl_new_customers',JSON.stringify(nc));
+    }
+  }catch(e){}
   finishLogin(customers[key]);
 }
 
