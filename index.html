@@ -1395,51 +1395,49 @@ async function loadCustomersFromSheet(){
     if(Array.isArray(rows)) rows.forEach(r=>{
       if(!r.name||!r.block||!r.flat)return;
       const key=custKey(r.name,r.block,r.flat,r.phone4);
-      // skip if locally deleted (wiped) AND no local password — means truly gone
-      if(wipedKeys.has(key)&&!getPassword(key))return;
-      if(!customers[key]) customers[key]={name:r.name,block:r.block,flat:r.flat,phone4:r.phone4,key,joinDate:r.joinDate,orders:[]};
+      if(wipedKeys.has(key))return; // deleted — don't re-add
+      if(!customers[key]) customers[key]={name:r.name,block:r.block,flat:r.flat,phone4:r.phone4||'',key,joinDate:r.joinDate||'',orders:[]};
     });
     const orders=await gsFetch({type:'orders'});
     if(Array.isArray(orders)) orders.forEach(o=>{
       if(!o.name||!o.block||!o.flat)return;
       const key=custKey(o.name,o.block,o.flat,o.phone4);
-      if(wipedKeys.has(key)&&!getPassword(key))return;
-      if(!customers[key]) customers[key]={name:o.name,block:o.block,flat:o.flat,phone4:o.phone4,key,joinDate:'',orders:[]};
+      if(wipedKeys.has(key))return;
+      if(!customers[key]) customers[key]={name:o.name,block:o.block,flat:o.flat,phone4:o.phone4||'',key,joinDate:'',orders:[]};
       const exists=customers[key].orders.find(x=>x.orderId===o.orderId);
-      if(!exists) customers[key].orders.push({orderId:o.orderId,items:o.items,total:Number(o.total),status:o.status,time:o.timestamp,feedback:o.feedback});
+      if(!exists) customers[key].orders.push({orderId:o.orderId,items:o.items,total:Number(o.total),status:o.status,time:o.timestamp,feedback:o.feedback||''});
     });
   }catch(e){}
 }
 
 async function saveSession(){
-  try{
-    // only save current user — full customer list always fetched fresh from sheet
-    localStorage.setItem('gl_user',JSON.stringify(currentUser));
-  }catch(e){}
+  try{localStorage.setItem('gl_user',JSON.stringify(currentUser));}catch(e){}
 }
 
 function loadSession(){
   try{
     const u=localStorage.getItem('gl_user');
-    // restore current user only — not the full customer list (sheet is source of truth)
-    if(u){
-      currentUser=JSON.parse(u);
-      if(currentUser&&isBanned(currentUser.block,currentUser.flat,currentUser.phone4)){
-        const key=currentUser.key;
-        currentUser=null;
-        try{localStorage.removeItem('gl_user');}catch(e){}
-        showBannedScreen(null);
-        return;
-      }
-      if(currentUser&&currentUser.key){
-        // restore just this user into customers if not present
-        if(!customers[currentUser.key]){
-          customers[currentUser.key]={...currentUser,orders:[]};
-        }
-      }
-      updateLoginBtn();
-      loadMyOrders().then(()=>saveSession());
+    if(!u)return;
+    currentUser=JSON.parse(u);
+    if(!currentUser)return;
+    // check if banned
+    if(isBanned(currentUser.block,currentUser.flat,currentUser.phone4)){
+      currentUser=null;
+      try{localStorage.removeItem('gl_user');}catch(e){}
+      showBannedScreen(null);return;
     }
+    // check if still has password (not deleted)
+    if(!getPassword(currentUser.key)){
+      currentUser=null;
+      try{localStorage.removeItem('gl_user');}catch(e){}
+      return;
+    }
+    // restore into customers if not there
+    if(!customers[currentUser.key]){
+      customers[currentUser.key]={...currentUser,orders:[]};
+    }
+    updateLoginBtn();
+    loadMyOrders().then(()=>saveSession());
   }catch(e){}
 }
 
@@ -1495,35 +1493,14 @@ function doSignIn(){
   const err=document.getElementById('li-err');
   err.style.display='none';
   if(!name||!block||!flat||!phone4||!pass){err.textContent='Please fill in all fields.';err.style.display='block';return;}
-  if(isBanned(block,flat,phone4)){err.textContent='Your account has been suspended. Contact the admin.';err.style.display='block';return;}
+  if(isBanned(block,flat,phone4)){err.textContent='Account suspended. Contact admin.';err.style.display='block';return;}
   const key=custKey(name,block,flat,phone4);
-
-  // get stored password — this is the only source of truth
   const storedPass=getPassword(key);
-
-  // if no local password stored — account doesn't exist or was deleted, must re-register
-  if(!storedPass){
-    // check if they exist in sheet (cross-device sign-in without password on this device)
-    // In that case we can't verify — tell them to re-register
-    err.textContent='No account found on this device. Create a new account or check your details.';
-    err.style.display='block';
-    return;
-  }
-
-  // password check — strict
-  if(pass!==storedPass){
-    err.textContent='Incorrect password.';
-    err.style.display='block';
-    return;
-  }
-
-  // password correct — find or build customer object
-  let found=customers[key];
-  if(!found){
-    customers[key]={name,block,flat,phone4,key,joinDate:new Date().toLocaleDateString('en-IN'),orders:[]};
-    found=customers[key];
-  }
-  finishLogin(found);
+  if(!storedPass){err.textContent='No account found. Create one first.';err.style.display='block';return;}
+  if(pass!==storedPass){err.textContent='Incorrect password.';err.style.display='block';return;}
+  // password correct
+  if(!customers[key]) customers[key]={name,block,flat,phone4,key,joinDate:new Date().toLocaleDateString('en-IN'),orders:[]};
+  finishLogin(customers[key]);
 }
 
 function doLogin(){
@@ -1540,21 +1517,22 @@ function doLogin(){
   if(pass.length<4){err.textContent='Password must be at least 4 characters.';err.style.display='block';return;}
   if(isBanned(block,flat,phone4)){err.textContent='This account has been suspended.';err.style.display='block';return;}
   const key=custKey(name,block,flat,phone4);
-  // only block if password exists locally — that's the real indicator of an active account
-  if(getPassword(key)){
-    err.textContent='An account with this name already exists. Try signing in.';err.style.display='block';return;
-  }
-  // create or overwrite (fresh start after wipe)
-  customers[key]={name,block,flat,phone4,key,joinDate:new Date().toLocaleDateString('en-IN'),orders:[],password:pass};
-  wipedKeys.delete(key);
+  // block if active account exists (has password)
+  if(getPassword(key)){err.textContent='Account already exists. Try signing in.';err.style.display='block';return;}
+  // create fresh account
+  const joinDate=new Date().toLocaleDateString('en-IN');
+  customers[key]={name,block,flat,phone4,key,joinDate,orders:[]};
+  wipedKeys.delete(key); // unblock if previously wiped
   saveBans();
   savePassword(key,pass);
+  // tell admin panel about new customer
   try{
     const nc=JSON.parse(localStorage.getItem('gl_new_customers')||'[]');
-    nc.push({name,block,flat,phone4,key,joinDate:customers[key].joinDate});
-    localStorage.setItem('gl_new_customers',JSON.stringify(nc));
+    const fresh=nc.filter(x=>x.key!==key);
+    fresh.push({name,block,flat,phone4,key,joinDate});
+    localStorage.setItem('gl_new_customers',JSON.stringify(fresh));
   }catch(e){}
-  gsPost({type:'customer',name,block,flat,phone4,joinDate:customers[key].joinDate});
+  gsPost({type:'customer',name,block,flat,phone4,joinDate});
   finishLogin(customers[key]);
 }
 
@@ -1567,7 +1545,7 @@ function finishLogin(cust){
     document.getElementById('f-name').value=cust.name;
     document.getElementById('f-block').value=cust.block;
     document.getElementById('f-flatno').value=cust.flat;
-    showToast('Welcome back, '+cust.name.split(' ')[0]+' 👋');
+    showToast('Welcome, '+cust.name.split(' ')[0]+' 👋');
   });
 }
 
@@ -1642,21 +1620,27 @@ function openHist(){
 }
 function deleteOwnAccount(){
   if(!currentUser)return;
-  if(!confirm('Delete your account? All your data will be wiped. You can create a new account anytime.'))return;
+  if(!confirm('Delete your account? You can create a new one anytime.'))return;
   const key=currentUser.key;
   const c=customers[key];
   bannedUsers.delete(key);
   promotedAdmins.delete(key);
   if(c)bannedIds.delete(c.block+'|'+c.flat+'|'+c.phone4);
   delete customers[key];
-  deletePassword(key); // wipe password → they can re-register fresh
-  wipedKeys.delete(key); // don't block re-registration
+  deletePassword(key);    // wipe password
+  wipedKeys.delete(key);  // let them re-register freely
+  // tell admin to remove them
+  try{
+    const wl=JSON.parse(localStorage.getItem('gl_wiped_notify')||'[]');
+    wl.push(key);
+    localStorage.setItem('gl_wiped_notify',JSON.stringify(wl));
+  }catch(e){}
   saveBans();
   currentUser=null;
   try{localStorage.removeItem('gl_user');}catch(e){}
   updateLoginBtn();
   closeHist();
-  showActionScreen('🗑','Account Deleted','Your account and all data has been wiped.<br>You can create a new account anytime.','OK',null);
+  showActionScreen('🗑','Account Deleted','All your data has been wiped.\nYou can create a new account anytime.','OK',null);
 }
 
 function changeUserPassword(){
@@ -1753,71 +1737,61 @@ function showDeletedScreen(onOk){showActionScreen('🗑','Account Deleted','Your
 function showAdminRemovedScreen(onOk){showActionScreen('🔒','Admin Access Removed','Your admin privileges have been revoked.','OK',onOk);}
 
 function savePassword(key,pass){
-  try{
-    const pw=JSON.parse(localStorage.getItem('gl_pw')||'{}');
-    pw[key]=pass;
-    localStorage.setItem('gl_pw',JSON.stringify(pw));
-  }catch(e){}
+  try{const pw=JSON.parse(localStorage.getItem('gl_pw')||'{}');pw[key]=pass;localStorage.setItem('gl_pw',JSON.stringify(pw));}catch(e){}
 }
 function getPassword(key){
-  try{
-    const pw=JSON.parse(localStorage.getItem('gl_pw')||'{}');
-    return pw[key]||null;
-  }catch(e){return null;}
+  try{const pw=JSON.parse(localStorage.getItem('gl_pw')||'{}');return pw[key]||null;}catch(e){return null;}
 }
 function deletePassword(key){
-  try{
-    const pw=JSON.parse(localStorage.getItem('gl_pw')||'{}');
-    delete pw[key];
-    localStorage.setItem('gl_pw',JSON.stringify(pw));
-  }catch(e){}
+  try{const pw=JSON.parse(localStorage.getItem('gl_pw')||'{}');delete pw[key];localStorage.setItem('gl_pw',JSON.stringify(pw));}catch(e){}
 }
 function flagUser(key,action){try{const f=JSON.parse(localStorage.getItem('gl_flags')||'{}');f[key]={action,ts:Date.now()};localStorage.setItem('gl_flags',JSON.stringify(f));}catch(e){}}
 function clearFlag(key){try{const f=JSON.parse(localStorage.getItem('gl_flags')||'{}');delete f[key];localStorage.setItem('gl_flags',JSON.stringify(f));}catch(e){}}
 
 function startStatusPoll(){
   setInterval(()=>{
-    // pick up new customers registered on other devices
+    // pick up new customer registrations
     try{
       const nc=JSON.parse(localStorage.getItem('gl_new_customers')||'[]');
       if(nc.length){
-        let added=false;
+        let changed=false;
         nc.forEach(r=>{
-          if(wipedKeys.has(r.key))return;
-          if(!customers[r.key]){
-            customers[r.key]={...r,orders:[]};
-            added=true;
-          }
+          wipedKeys.delete(r.key); // re-registered — unblock
+          customers[r.key]={name:r.name,block:r.block,flat:r.flat,phone4:r.phone4,key:r.key,joinDate:r.joinDate,orders:[]};
+          changed=true;
         });
-        // clear the queue
         localStorage.setItem('gl_new_customers','[]');
-        if(added&&adminOn){
-          renderCustomerList();
-          showToast('👤 New customer registered!');
-        }
+        if(changed){saveBans();if(adminOn)renderCustomerList();showToast('👤 New customer!');}
       }
     }catch(e){}
-
-    // check if current user has been actioned
+    // pick up self-deletions (user deleted own account)
+    try{
+      const wl=JSON.parse(localStorage.getItem('gl_wiped_notify')||'[]');
+      if(wl.length){
+        wl.forEach(key=>{
+          delete customers[key];
+          wipedKeys.add(key);
+          deletePassword(key);
+        });
+        localStorage.setItem('gl_wiped_notify','[]');
+        saveBans();
+        if(adminOn)renderCustomerList();
+      }
+    }catch(e){}
+    // check if current user was actioned by admin
     if(!currentUser)return;
     try{
       const flags=JSON.parse(localStorage.getItem('gl_flags')||'{}');
       const f=flags[currentUser.key];
       if(!f)return;
       clearFlag(currentUser.key);
-      const deletedKey=currentUser.key;
+      const k=currentUser.key;
       currentUser=null;
       try{localStorage.removeItem('gl_user');}catch(e){}
       updateLoginBtn();
       if(f.action==='ban') showBannedScreen(null);
       else if(f.action==='kick') showKickedScreen(null);
-      else if(f.action==='delete'){
-        // wipe local password and mark as wiped so they can re-register fresh
-        deletePassword(deletedKey);
-        wipedKeys.delete(deletedKey); // let them re-register
-        saveBans();
-        showDeletedScreen(null);
-      }
+      else if(f.action==='delete'){deletePassword(k);wipedKeys.delete(k);saveBans();showDeletedScreen(null);}
       else if(f.action==='demote') showAdminRemovedScreen(null);
     }catch(e){}
   },4000);
@@ -1885,19 +1859,18 @@ function forceLogout(key,action){
 }
 
 function deleteAccount(key){
-  if(!confirm('Delete this account? Their data will be wiped — they can create a new account.'))return;
+  if(!confirm('Delete this account? Data wiped — they can re-register.'))return;
   const c=customers[key];
   forceLogout(key,'delete');
   bannedUsers.delete(key);
   promotedAdmins.delete(key);
   if(c)bannedIds.delete(c.block+'|'+c.flat+'|'+c.phone4);
   delete customers[key];
-  wipedKeys.add(key);
-  deletePassword(key);
+  wipedKeys.add(key);   // block sheet from re-adding
+  deletePassword(key);  // wipe password — account gone
   saveBans();
-  try{localStorage.setItem('gl_customers',JSON.stringify(customers));}catch(e){}
   renderCustomerList();
-  showToast('Account wiped 🗑');
+  showToast('Account deleted 🗑');
 }
 
 function kickCustomer(key){
