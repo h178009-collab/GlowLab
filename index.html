@@ -1395,14 +1395,14 @@ async function loadCustomersFromSheet(){
     if(Array.isArray(rows)) rows.forEach(r=>{
       if(!r.name||!r.block||!r.flat)return;
       const key=custKey(r.name,r.block,r.flat,r.phone4);
-      if(wipedKeys.has(key))return; // deleted — don't re-add
+      // only skip if actively wiped AND they haven't re-registered (no password on this device)
+      // But we can't know if they re-registered on another device — so just add them
       if(!customers[key]) customers[key]={name:r.name,block:r.block,flat:r.flat,phone4:r.phone4||'',key,joinDate:r.joinDate||'',orders:[]};
     });
     const orders=await gsFetch({type:'orders'});
     if(Array.isArray(orders)) orders.forEach(o=>{
       if(!o.name||!o.block||!o.flat)return;
       const key=custKey(o.name,o.block,o.flat,o.phone4);
-      if(wipedKeys.has(key))return;
       if(!customers[key]) customers[key]={name:o.name,block:o.block,flat:o.flat,phone4:o.phone4||'',key,joinDate:'',orders:[]};
       const exists=customers[key].orders.find(x=>x.orderId===o.orderId);
       if(!exists) customers[key].orders.push({orderId:o.orderId,items:o.items,total:Number(o.total),status:o.status,time:o.timestamp,feedback:o.feedback||''});
@@ -1866,10 +1866,14 @@ function deleteAccount(key){
   promotedAdmins.delete(key);
   if(c)bannedIds.delete(c.block+'|'+c.flat+'|'+c.phone4);
   delete customers[key];
-  wipedKeys.add(key);   // block sheet from re-adding
-  deletePassword(key);  // wipe password — account gone
+  wipedKeys.add(key);
+  deletePassword(key);
   saveBans();
-  renderCustomerList();
+  // rebuild customers from sheet, skipping this key
+  loadCustomersFromSheet().then(()=>{
+    delete customers[key]; // remove again after sheet reload
+    renderCustomerList();
+  });
   showToast('Account deleted 🗑');
 }
 
@@ -1913,7 +1917,7 @@ function demoteAdmin(key){
 
 function renderCustomerList(){
   const search=(document.getElementById('cust-search')?.value||'').toLowerCase();
-  const all=Object.values(customers);
+  const all=Object.values(customers).filter(c=>!wipedKeys.has(c.key));
   const active=all.filter(c=>!bannedUsers.has(c.key));
   const banned=all.filter(c=>bannedUsers.has(c.key));
   const filtered=search?active.filter(c=>
