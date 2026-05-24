@@ -1540,9 +1540,8 @@ function doLogin(){
   if(pass.length<4){err.textContent='Password must be at least 4 characters.';err.style.display='block';return;}
   if(isBanned(block,flat,phone4)){err.textContent='This account has been suspended.';err.style.display='block';return;}
   const key=custKey(name,block,flat,phone4);
-  // check if account already exists AND has a password set (not a wiped/ghost entry)
-  const existing=customers[key];
-  if(existing&&getPassword(key)){
+  // only block if password exists locally — that's the real indicator of an active account
+  if(getPassword(key)){
     err.textContent='An account with this name already exists. Try signing in.';err.style.display='block';return;
   }
   // create or overwrite (fresh start after wipe)
@@ -1650,8 +1649,8 @@ function deleteOwnAccount(){
   promotedAdmins.delete(key);
   if(c)bannedIds.delete(c.block+'|'+c.flat+'|'+c.phone4);
   delete customers[key];
-  wipedKeys.add(key);
-  deletePassword(key);
+  deletePassword(key); // wipe password → they can re-register fresh
+  wipedKeys.delete(key); // don't block re-registration
   saveBans();
   currentUser=null;
   try{localStorage.removeItem('gl_user');}catch(e){}
@@ -1806,12 +1805,19 @@ function startStatusPoll(){
       const f=flags[currentUser.key];
       if(!f)return;
       clearFlag(currentUser.key);
+      const deletedKey=currentUser.key;
       currentUser=null;
       try{localStorage.removeItem('gl_user');}catch(e){}
       updateLoginBtn();
       if(f.action==='ban') showBannedScreen(null);
       else if(f.action==='kick') showKickedScreen(null);
-      else if(f.action==='delete') showDeletedScreen(null);
+      else if(f.action==='delete'){
+        // wipe local password and mark as wiped so they can re-register fresh
+        deletePassword(deletedKey);
+        wipedKeys.delete(deletedKey); // let them re-register
+        saveBans();
+        showDeletedScreen(null);
+      }
       else if(f.action==='demote') showAdminRemovedScreen(null);
     }catch(e){}
   },4000);
@@ -1867,7 +1873,12 @@ function forceLogout(key,action){
     updateLoginBtn();
     if(action==='ban') showBannedScreen(null);
     else if(action==='kick') showKickedScreen(null);
-    else if(action==='delete') showDeletedScreen(null);
+    else if(action==='delete'){
+      deletePassword(key);
+      wipedKeys.delete(key);
+      saveBans();
+      showDeletedScreen(null);
+    }
     else if(action==='demote') showAdminRemovedScreen(null);
   }
   flagUser(key,action);
