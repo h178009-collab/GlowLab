@@ -1946,7 +1946,10 @@ function demoteAdmin(key){
 
 function renderCustomerList(){
   const search=(document.getElementById('cust-search')?.value||'').toLowerCase();
-  const all=Object.values(customers).filter(c=>!wipedKeys.has(c.key));
+  // only show real accounts: must have orders OR a local password OR be in wipedKeys (banned section)
+  const all=Object.values(customers).filter(c=>
+    !wipedKeys.has(c.key) && (c.orders.length>0 || getPassword(c.key))
+  );
   const active=all.filter(c=>!bannedUsers.has(c.key));
   const banned=all.filter(c=>bannedUsers.has(c.key));
   const filtered=search?active.filter(c=>
