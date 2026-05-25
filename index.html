@@ -1746,7 +1746,12 @@ function showActionScreen(emoji,title,msg,btnLabel,onOk){
 }
 function showBannedScreen(onOk){showActionScreen('🚫','You Are Banned','Your account has been suspended.<br>Contact the admin for enquiries.','OK',onOk);}
 function showKickedScreen(onOk){showActionScreen('👢','You Have Been Kicked','You have been removed from this session.<br>You may log back in.','OK',onOk);}
-function showDeletedScreen(onOk){showActionScreen('🗑','Account Deleted','Your account has been permanently deleted.<br>Contact the admin for enquiries.','OK',onOk);}
+function showDeletedScreen(key){
+  showActionScreen('🗑','Account Deleted','Your account has been deleted.<br>You can create a new account anytime.','OK',()=>{
+    // clear local password so they can re-register
+    if(key){deletePassword(key);wipedKeys.delete(key);saveBans();}
+  });
+}
 function showAdminRemovedScreen(onOk){showActionScreen('🔒','Admin Access Removed','Your admin privileges have been revoked.','OK',onOk);}
 
 function savePassword(key,pass){
@@ -1805,7 +1810,7 @@ function startStatusPoll(){
         updateLoginBtn();
         if(f.action==='ban') showBannedScreen(null);
         else if(f.action==='kick') showKickedScreen(null);
-        else if(f.action==='delete'){deletePassword(k);wipedKeys.delete(k);saveBans();showDeletedScreen(null);}
+        else if(f.action==='delete'){showDeletedScreen(k);}
         else if(f.action==='demote') showAdminRemovedScreen(null);
         return;
       }
@@ -1817,7 +1822,7 @@ function startStatusPoll(){
         currentUser=null;
         try{localStorage.removeItem('gl_user');}catch(e){}
         updateLoginBtn();
-        if(res.action==='delete'){deletePassword(k);wipedKeys.delete(k);saveBans();showDeletedScreen(null);}
+        if(res.action==='delete'){showDeletedScreen(k);}
         else if(res.action==='ban') showBannedScreen(null);
         else if(res.action==='kick') showKickedScreen(null);
       }).catch(()=>{});
@@ -1876,10 +1881,7 @@ function forceLogout(key,action){
     if(action==='ban') showBannedScreen(null);
     else if(action==='kick') showKickedScreen(null);
     else if(action==='delete'){
-      deletePassword(key);
-      wipedKeys.delete(key);
-      saveBans();
-      showDeletedScreen(null);
+      showDeletedScreen(key);
     }
     else if(action==='demote') showAdminRemovedScreen(null);
   }
