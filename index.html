@@ -1530,8 +1530,25 @@ function doLogin(){
   if(pass.length<4){err.textContent='Password must be at least 4 characters.';err.style.display='block';return;}
   if(isBanned(block,flat,phone4)){err.textContent='This account has been suspended.';err.style.display='block';return;}
   const key=custKey(name,block,flat,phone4);
-  // block if active account exists (has password)
-  if(getPassword(key)){err.textContent='Account already exists. Try signing in.';err.style.display='block';return;}
+  // if old password exists but account was wiped locally — clear it
+  if(wipedKeys.has(key)){deletePassword(key);wipedKeys.delete(key);saveBans();}
+  // if password exists, might be genuinely existing account OR stale after cross-device delete
+  if(getPassword(key)){
+    // check sheet to see if admin deleted this account from another device
+    err.textContent='Checking...';err.style.display='block';
+    gsFetch({type:'action',block,flat,phone4}).then(res=>{
+      err.style.display='none';
+      if(res&&res.action==='delete'){
+        // admin deleted from another device — clear stale password and proceed
+        deletePassword(key);
+        delete customers[key];
+        doLogin(); // retry now that password is cleared
+      } else {
+        err.textContent='Account already exists. Try signing in.';err.style.display='block';
+      }
+    }).catch(()=>{err.textContent='Account already exists. Try signing in.';err.style.display='block';});
+    return;
+  }
   // create fresh account
   const joinDate=new Date().toLocaleDateString('en-IN');
   customers[key]={name,block,flat,phone4,key,joinDate,orders:[]};
